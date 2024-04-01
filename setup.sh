@@ -23,14 +23,14 @@ echo 'Extracting GO 1.22.1'
 tar xvf go1.22.1.linux-amd64.tar.gz
 mv go ~/.go
 
-export GOROOT="~/.go"
-export GOPATH="~/go"
+export GOROOT="$HOME/.go"
+export GOPATH="$HOME/go"
 
 ~/.go/bin/go install golang.org/x/tools/gopls@latest
 
 # Initialize enviroment variables
-echo -e 'export GOROOT="~/.go" ' >> ~/.bashrc 
-echo -e 'export GOPATH="~/go" '  >> ~/.bashrc 
+echo -e 'export GOROOT="$HOME/.go" ' >> ~/.bashrc 
+echo -e 'export GOPATH="$HOME/go" '  >> ~/.bashrc 
 echo -e 'export PATH="$PATH:~/.go/bin" ' >> ~/.bashrc
 
 #
