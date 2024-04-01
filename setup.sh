@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Remove previous version of Golang
-sudo /etc/alternatives/go
-sudo /etc/alternatives/gofmt
-sudo /usr/bin/go
-sudo /usr/bin/gofmt
-sudo /usr/bin/gocode
+sudo rm /etc/alternatives/go
+sudo rm /etc/alternatives/gofmt
+sudo rm /usr/bin/go
+sudo rm /usr/bin/gofmt
+sudo rm /usr/bin/gocode
 
 # Download and checkout a release <tag> 
 git clone https://github.com/golang/go.git ~/.go
