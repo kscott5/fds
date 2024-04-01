@@ -7,26 +7,31 @@ sudo rm /usr/bin/go
 sudo rm /usr/bin/gofmt
 sudo rm /usr/bin/gocode
 
-# Download and checkout a release <tag> 
-git clone https://github.com/golang/go.git ~/.go
-cd ~/.go
-git checkout go1.22.1 
-
-# Build go commands from source
-cd ~/.go/src
-./all.bash
-
-# Initialize enviroment variables
-echo -e 'export $GOROOT=~/.go ' >> ~/.bashrc 
-echo -e 'export $GOPATH=~/go '  >> ~/.bashrc 
-echo -e 'export $PATH="$PATH:~/.go/bin"' >> ~/.bashrc
-
 mkdir ~/install
 
 # Resize EBS in Cloud9 environment 
 cd ~/install
 wget 'https://ws-assets-prod-iad-r-iad-ed304a55c2ca1aee.s3.us-east-1.amazonaws.com/76bc5278-3f38-46e8-b306-f0bfda551f5a/shared/resize.sh' 
 bash resize.sh 20
+
+# Create the GOPATH directory
+mkdir ~/go
+
+# Get lastest version of go
+wget 'https://go.dev/dl/go1.22.1.linux-amd64.tar.gz'
+echo 'Extracting GO 1.22.1'
+tar xvf go1.22.1.linux-amd64.tar.gz
+mv go ~/.go
+
+export GOROOT="~/.go"
+export GOPATH="~/go"
+
+~/.go/bin/go install golang.org/x/tools/gopls@latest
+
+# Initialize enviroment variables
+echo -e 'export GOROOT="~/.go" ' >> ~/.bashrc 
+echo -e 'export GOPATH="~/go" '  >> ~/.bashrc 
+echo -e 'export PATH="$PATH:~/.go/bin" ' >> ~/.bashrc
 
 #
 # Install Python 3.9
