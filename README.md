@@ -6,4 +6,11 @@ As more people work remotely, restaurants have experienced huge growth for carry
 A startup company received funding to connect restaurants and nearby customers. The new service will exclusively use electric bike riders to pick up and deliver food to hyperlocal customers. The goal is to create a fast, economical, and environmentally friendly delivery service.
 
 > [!NOTE]
-> This is the [self-service](https://catalog.workshops.aws/serverless-patterns/en-US/logistics-self-service) project option
+> This is the [self-service](https://catalog.workshops.aws/serverless-patterns/en-US/logistics-self-service) project option. My local laptop has the development tools used with these modules. Don't forget to visit [aws cli install](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+```shell 
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+rm ./aws -rf
+```
