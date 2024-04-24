@@ -9,7 +9,7 @@ variable "lambda_memory" {
   default = "128"
 }
 variable "lambda_runtime" {
-  default = "python3.9"
+  default = "python3.12"
 }
 variable "lambda_timeout" {
   default = "100"
