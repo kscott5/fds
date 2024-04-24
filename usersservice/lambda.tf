@@ -10,7 +10,7 @@ data "archive_file" "userfunctions_lambda_zip" {
 resource "aws_lambda_function" "getusers" {
   filename         = data.archive_file.userfunctions_lambda_zip.output_path
   function_name    = "tablescan"
-  description      = "Handler for all users related operations"
+  description      = "${var.workshop_stack_base_name}.users.table scan"
   role             = aws_iam_role.userfunctions_lambda_role.arn
   handler          = "tablescan.lambda_handler"
   source_code_hash = data.archive_file.userfunctions_lambda_zip.output_base64sha256
