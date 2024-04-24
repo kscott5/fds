@@ -3,16 +3,16 @@
 
 data "archive_file" "userfunctions_lambda_zip" {
   type        = "zip"
-  output_path = "/tmp/userfunctions_lambda.zip"
-  source_dir  = "src/users/dist"
+  output_path = "./dist/${var.workshop_stack_base_name}.lambda.getusers.zip"
+  source_dir  = "./src/users"
 }
 
-resource "aws_lambda_function" "userfunctions_lambda" {
+resource "aws_lambda_function" "getusers" {
   filename         = data.archive_file.userfunctions_lambda_zip.output_path
-  function_name    = "${var.workshop_stack_base_name}_userfunctions_lambda"
+  function_name    = "tablescan"
   description      = "Handler for all users related operations"
   role             = aws_iam_role.userfunctions_lambda_role.arn
-  handler          = "lambda_function.lambda_handler"
+  handler          = "tablescan.lambda_handler"
   source_code_hash = data.archive_file.userfunctions_lambda_zip.output_base64sha256
   runtime          = var.lambda_runtime
   timeout          = var.lambda_timeout
@@ -27,5 +27,5 @@ resource "aws_lambda_function" "userfunctions_lambda" {
 }
 
 output "userfunctions_lambda" {
-  value = aws_lambda_function.userfunctions_lambda.function_name
+  value = aws_lambda_function.getusers.function_name
 }
