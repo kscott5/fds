@@ -9,7 +9,7 @@ def lambda_handler(event, context):
     db = boto3.resource('dynamodb', 'en-us')
 
     table = db.Table(table_name)
-    results = table.Scan(FilterExpression=Attr("userid").exists())
+    results = table.scan(FilterExpression=Attr("userid").exists())
     
     return results
 
