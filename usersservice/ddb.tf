@@ -3,30 +3,11 @@
 
 resource "aws_dynamodb_table" "users_table" {
   name         = "${var.workshop_stack_base_name}.users"
-  billing_mode = "PAY_PER_REQUEST"
+  billing_mode = "PROVISIONED"
   hash_key     = "_id"
 
   attribute {
     name = "_id"
-    type = "S"
-  }
-  attribute {
-    name = "userid"
-    type = "S"
-  }
-
-
-  attribute {
-    name = "username"
-    type = "S"
-  }
-
-  attribute {
-    name = "surname"
-    type = "S"
-  }
-  attribute {
-    name = "givennames"
     type = "S"
   }
 }
