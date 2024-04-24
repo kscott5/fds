@@ -1,7 +1,15 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-variable "region" {}
+variable "account_id" {
+  default = "154337954194"
+}
+variable "region" {
+  default = "us-east-1"
+}
+variable "arn_aws_lambda_base" {
+  default = "arn:aws:lambda"
+}
 variable "workshop_stack_base_name" {
   default = "fds.apps"
 }

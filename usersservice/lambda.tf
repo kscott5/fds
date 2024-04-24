@@ -27,5 +27,6 @@ resource "aws_lambda_function" "getusers" {
 }
 
 output "userfunctions_lambda" {
-  value = aws_lambda_function.getusers.function_name
+  #value = aws_lambda_function.getusers.function_name
+  value = "${var.arn_aws_lambda_base}:${var.region}:${var.account_id}:function:${aws_lambda_function.getusers.function_name}"
 }
