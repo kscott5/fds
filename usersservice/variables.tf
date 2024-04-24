@@ -3,7 +3,7 @@
 
 variable "region" {}
 variable "workshop_stack_base_name" {
-  default = "tf-serverless-patterns"
+  default = "fds.apps"
 }
 variable "lambda_memory" {
   default = "128"
