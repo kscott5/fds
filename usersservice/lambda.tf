@@ -4,15 +4,15 @@
 data "archive_file" "userfunctions_lambda_zip" {
   type        = "zip"
   output_path = "./dist/${var.workshop_stack_base_name}.lambda.getusers.zip"
-  source_dir  = "./src/users"
+  source_dir  = "./src/api"
 }
 
 resource "aws_lambda_function" "getusers" {
   filename         = data.archive_file.userfunctions_lambda_zip.output_path
-  function_name    = "tablescan"
+  function_name    = "userservice"
   description      = "${var.workshop_stack_base_name}.users"
   role             = aws_iam_role.userfunctions_lambda_role.arn
-  handler          = "tablescan.lambda_handler"
+  handler          = "userservice.lambda_handler"
   source_code_hash = data.archive_file.userfunctions_lambda_zip.output_base64sha256
   runtime          = var.lambda_runtime
   timeout          = var.lambda_timeout
