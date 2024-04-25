@@ -4,6 +4,7 @@ resource "aws_apigatewayv2_api" "getusers" {
   protocol_type = "HTTP"
 }
 
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_route
 resource "aws_apigatewayv2_route" "getusers" {
   api_id    = aws_apigatewayv2_api.getusers.id
   route_key = "GET /users/tablescan"
@@ -39,10 +40,14 @@ resource "aws_apigatewayv2_deployment" "getusers" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_stage
 resource "aws_apigatewayv2_stage" "getusers" {
   api_id        = aws_apigatewayv2_api.getusers.id
-  deployment_id = aws_apigatewayv2_deployment.getusers.id
+  #deployment_id = aws_apigatewayv2_deployment.getusers.id
   name          = "dev"
-  auto_deploy = true
-  
+  auto_deploy = true  
+}
+
+output "aws_apigatewayv2_stage" {
+  value = aws_apigatewayv2_stage.getusers.invoke_url
+  description = "Available staging url located on the HTTP v2 Gateway"
 }
 output "aws_apigatewayv2_api" {
   value = aws_apigatewayv2_api.getusers.api_endpoint
