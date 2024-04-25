@@ -1,9 +1,7 @@
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_api
 resource "aws_apigatewayv2_api" "getusers" {
-  id            = "${var.workshop_stack_base_name}.lambda.tablescan.users"
   name          = "${var.workshop_stack_base_name}.lambda.tablescan.users"
   protocol_type = "HTTP"
-
 }
 
 resource "aws_apigatewayv2_route" "getusers" {
