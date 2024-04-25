@@ -22,30 +22,6 @@ resource "aws_api_gateway_rest_api" "getusers" {
   })
 }
 
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_resource
-# resource "aws_api_gateway_resource" "getusers" {
-#   rest_api_id = aws_api_gateway_rest_api.getusers.id
-#   parent_id   = aws_api_gateway_rest_api.getusers.root_resource_id
-#   path_part   = "users"
-# }
-
-# resource "aws_api_gateway_method" "getusers" {
-#   rest_api_id   = aws_api_gateway_rest_api.getusers.id
-#   resource_id   = aws_api_gateway_resource.getusers.id
-#   http_method   = "GET"
-#   authorization = "NONE"
-#}
-
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_integration
-# resource "aws_api_gateway_integration" "getusers" {
-#   rest_api_id             = aws_api_gateway_rest_api.getusers.id
-#   resource_id             = aws_api_gateway_resource.getusers.id
-#   http_method             = aws_api_gateway_method.getusers.http_method
-#   uri                     = aws_lambda_function.getusers.invoke_arn
-#   integration_http_method = "POST"
-#   type                    = "AWS_PROXY"
-# }
-
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_deployment
 resource "aws_api_gateway_deployment" "getusers" {
   rest_api_id = aws_api_gateway_rest_api.getusers.id
@@ -64,7 +40,6 @@ resource "aws_api_gateway_stage" "getusers" {
   stage_name    = "dev"
   deployment_id = aws_api_gateway_deployment.getusers.id
 }
-
 resource "aws_lambda_permission" "api_getusers" {
   statement_id  = "AllowHttpGetUsers"
   action        = "lambda:InvokeFunction"
