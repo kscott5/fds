@@ -19,7 +19,6 @@ resource "aws_apigatewayv2_integration" "getusers" {
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_deployment
 resource "aws_apigatewayv2_deployment" "getusers" {
-  id     = "${var.workshop_stack_base_name}.deployment.lambda.getusers"
   api_id = aws_apigatewayv2_api.getusers.id
 
   triggers = {
