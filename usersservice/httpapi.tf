@@ -1,111 +1,77 @@
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_integration
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api
+# https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-integration-async.html
 resource "aws_api_gateway_rest_api" "getusers" {
-    name = "${var.workshop_stack_base_name}.rest.api.users.tablescan"
+  name = "${var.workshop_stack_base_name}.api.getusers"
+  body = jsonencode({
+    openapi = "3.0.2"
+    info = {
+      title   = "FDS RestAPI Get Users",
+      version = "1.0"
+    },
+    paths = {
+      "/users" = {
+        get = {
+          x-amazon-apigateway-integration = {
+            httpMethod = "POST"
+            type       = "aws_proxy"
+            uri        = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getusers.arn}/invocations"
+          }
+        }
+      }
+    }
+  })
 }
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_resource
-resource "aws_api_gateway_resource" "getusers" {
-    rest_api_id = aws_api_gateway_rest_api.getusers.id
-    parent_id = aws_api_gateway_rest_api.getusers.root_resource_id
-    path_part = "somepart"
-}
+# resource "aws_api_gateway_resource" "getusers" {
+#   rest_api_id = aws_api_gateway_rest_api.getusers.id
+#   parent_id   = aws_api_gateway_rest_api.getusers.root_resource_id
+#   path_part   = "users"
+# }
 
-resource  "aws_api_gateway_method" "getusers" {
-    rest_api_id = aws_api_gateway_rest_api.getusers.id
-    resource_id = aws_api_gateway_resource.getusers.id
-    http_method = "GET"
-    authorization = "NONE"
-}
+# resource "aws_api_gateway_method" "getusers" {
+#   rest_api_id   = aws_api_gateway_rest_api.getusers.id
+#   resource_id   = aws_api_gateway_resource.getusers.id
+#   http_method   = "GET"
+#   authorization = "NONE"
+#}
+
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_integration
-resource "aws_api_gateway_integration" "getusers" {
-  rest_api_id = aws_api_gateway_rest_api.getusers.id
-  resource_id = aws_api_gateway_resource.getusers.id
-  http_method = aws_api_gateway_method.getusers.http_method
-  uri = aws_lambda_function.getusers.invoke_arn
-  integration_http_method = "POST"
-  type = "AWS_PROXY"
-  
-}
+# resource "aws_api_gateway_integration" "getusers" {
+#   rest_api_id             = aws_api_gateway_rest_api.getusers.id
+#   resource_id             = aws_api_gateway_resource.getusers.id
+#   http_method             = aws_api_gateway_method.getusers.http_method
+#   uri                     = aws_lambda_function.getusers.invoke_arn
+#   integration_http_method = "POST"
+#   type                    = "AWS_PROXY"
+# }
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_deployment
 resource "aws_api_gateway_deployment" "getusers" {
-    rest_api_id = aws_api_gateway_rest_api.getusers.id
-    triggers = {
-        redeployment = sha1(jsondecode(
-            aws_api_gateway_resource.getusers.id,
-            aws_api_gateway_method.getusers.id,
-            aws_api_gateway_integration.getusers.id))
-    }
-
-    lifecycle {
-      create_before_destroy = true
-    }
-}
-
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_stage
-resource "aws_api_gateway_stage" "getusers" {
-
-  
-}
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_api
-resource "aws_apigatewayv2_api" "getusers" {
-  name          = "${var.workshop_stack_base_name}.api.users.tablescan"
-  protocol_type = "HTTP"
-}
-
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_route
-resource "aws_apigatewayv2_route" "getusers" {
-  api_id    = aws_apigatewayv2_api.getusers.id
-  route_key = "GET /users/tablescan"
-  target = "integrations/${aws_apigatewayv2_integration.getusers.id}"
-}
-
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_integration
-resource "aws_apigatewayv2_integration" "getusers" {
-  api_id             = aws_apigatewayv2_api.getusers.id
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-  integration_uri    = aws_lambda_function.getusers.invoke_arn
-}
-
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_deployment
-resource "aws_apigatewayv2_deployment" "getusers" {
-  api_id = aws_apigatewayv2_api.getusers.id
-  
+  rest_api_id = aws_api_gateway_rest_api.getusers.id
 
   triggers = {
-    redeployment = sha1(join(",", tolist([
-      jsonencode(aws_apigatewayv2_api.getusers),
-      jsonencode(aws_apigatewayv2_route.getusers),
-      jsonencode(aws_apigatewayv2_integration.getusers),
-    ])))
+    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.getusers.body))
   }
-
   lifecycle {
     create_before_destroy = true
   }
 }
 
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_stage
-resource "aws_apigatewayv2_stage" "getusers" {
-  api_id        = aws_apigatewayv2_api.getusers.id
-  #deployment_id = aws_apigatewayv2_deployment.getusers.id
-  name          = "dev"
-  auto_deploy = true  
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_stage
+resource "aws_api_gateway_stage" "getusers" {
+  rest_api_id   = aws_api_gateway_rest_api.getusers.id
+  stage_name    = "dev"
+  deployment_id = aws_api_gateway_deployment.getusers.id
 }
 
 resource "aws_lambda_permission" "api_getusers" {
-    statement_id = "AllowHttpGetUsers"
-    action =  "lambda:InvokeFunction"
-    function_name = aws_lambda_function.getusers.function_name
-    principal = "apigateway.amazonaws.com"
-    source_arn = aws_lambda_function.getusers.arn
+  statement_id  = "AllowHttpGetUsers"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.getusers.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = aws_lambda_function.getusers.arn
 }
-
-output "aws_apigatewayv2_stage" {
-  value = aws_apigatewayv2_stage.getusers.invoke_url
-  description = "Available staging url located on the HTTP v2 Gateway"
-}
-output "aws_apigatewayv2_api" {
-  value = aws_apigatewayv2_api.getusers.api_endpoint
+output "aws_api_gateway_stage" {
+  value = aws_api_gateway_stage.getusers.invoke_url
 }
