@@ -6,11 +6,14 @@ resource "aws_dynamodb_table" "users_table" {
   billing_mode = "PROVISIONED"
   hash_key     = "_id"
 
+  read_capacity = 10
+  write_capacity = 10
   attribute {
     name = "_id"
     type = "S"
   }
 }
+
 output "users_table" {
   value = aws_dynamodb_table.users_table.id
 }
