@@ -45,7 +45,7 @@ def lambda_handler(event, context):
     return {
          'headers': headers,
          'statuscode': status_code,
-         'body': json.dump(response_body)
+         'body': json.dumps(response_body)
     }
 
 
