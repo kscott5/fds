@@ -22,22 +22,10 @@ def lambda_handler(event, context):
     response_body = {}
 
     try:    
-        match route_key:
-            case 'GET /users':
-                ddbResults = ddbTable.scan(Select='ALL_ATTRIBUTES')
-                response_body = ddbResults['Items']
-                status_code = 200
-
-            case 'GET /users/{userid}':
-                ddbResults = ddbTable.get_item(
-                    Key={'userid': event['pathParameters']['userid']}
-                )
-
-                if 'Item' in ddbResults:
-                    response_body = ddbResults['Item']
-                else:
-                    response_body = {}
-                status_code = 200
+        if route_key == 'GET /users':
+            ddbResults = ddbTable.scan(Select='ALL_ATTRIBUTES')
+            response_body = ddbResults['Items']
+            status_code = 200
 
     except Exception as err:
             response_body = f"Error: {str(err)}"
