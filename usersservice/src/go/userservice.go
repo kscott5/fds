@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go/aws"
 	"go.uber.org/zap"
 )
 
@@ -39,9 +41,13 @@ type Event2 struct {
 
 func lambda_handler(c context.Context, e *Event) (*Event, error) {
 	logger.Info(fmt.Sprintln("Context:", c, "Event: ", &e))
+	aws.String("")
 	return e, nil
 }
 
+func getUsers() {
+	var ddb = aws.
+}
 func main() {
 	var err error
 	logger, err = zap.NewDevelopment()
