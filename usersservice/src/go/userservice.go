@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/goccy/go-json"
 	"go.uber.org/zap"
 )
 
@@ -41,13 +44,28 @@ type Event2 struct {
 
 func lambda_handler(c context.Context, e *Event) (*Event, error) {
 	logger.Info(fmt.Sprintln("Context:", c, "Event: ", &e))
-	aws.String("")
+	
+	
 	return e, nil
 }
 
-func getUsers() {
-	var ddb = aws.
+func getUsers() []byte {
+	// NOTE: Local development with docker pull amazon/dynamodb-local
+
+	var scanInput dynamodb.ScanInput = dynamodb.ScanInput{} 
+	scanInput.TableName = aws.String("fds.apps.users")
+
+	client := dynamodb.NewFromConfig(aws.Config{})
+	if output, err := client.Scan(context.Background(), &scanInput);  err != nil {
+		logger.Error(fmt.Sprintln(err))
+	} else if data, err:= json.Marshal(output.Items); err != nil {
+		logger.Error(fmt.Sprintln(err))
+	} else {
+		return data
+	}
+	return nil
 }
+
 func main() {
 	var err error
 	logger, err = zap.NewDevelopment()

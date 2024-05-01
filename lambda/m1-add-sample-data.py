@@ -2,7 +2,7 @@ import boto3
 import uuid
 
 def lambda_handler(event, context):
-    table_name = 'serverless_workshop_intro'
+    table_name = 'fds.apps.users'
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(table_name)
 
@@ -26,3 +26,6 @@ def lambda_handler(event, context):
         result = f"Success. Added {len(people)} people to {table_name}."
 
     return {'message': result}
+
+if __name__ == "__main__" :
+    lambda_handler({}, {})
