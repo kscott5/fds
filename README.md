@@ -14,3 +14,15 @@ unzip awscliv2.zip
 sudo ./aws/install
 rm ./aws -rf
 ```
+
+## Local development
+```shell
+docker pull amazon/aws-lambda-go
+docker pull amazon/aws-lamdba-python
+docker pull amazon/dynamodb-local
+```
+## Local or remote staging of test data
+export AWS_ENPOINT_URL_DYNAMODB={localhost of docker dynamodb-local}
+```shell
+aws dynamodb batch-write-item --endpoint_url $AWS_ENDPOINT_URL_DYNAMODB  --request file://./data/data.json
+```
