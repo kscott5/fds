@@ -6,7 +6,7 @@ resource "aws_dynamodb_table" "users_table" {
   billing_mode = "PROVISIONED"
   hash_key     = "_id"
 
-  read_capacity = 10
+  read_capacity  = 10
   write_capacity = 10
   attribute {
     name = "_id"
