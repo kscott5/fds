@@ -4,7 +4,7 @@
 data "archive_file" "userfunctions_lambda_zip" {
   type        = "zip"
   output_path = "../.dist/${var.workshop_stack_base_name}.lambda.getusers.zip"
-  source_dir  = "../src/api"
+  source_dir  = "../src/pi"
 }
 
 resource "aws_lambda_function" "getusers" {
