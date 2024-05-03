@@ -26,6 +26,15 @@
                               "FullName": {"S": "Blue Sky Blues"}
                           }
                       }
+                  },
+                  {
+                      "PutRequest": {
+                          "Item": {
+                              "_id": {"S": "df155b71-ef78-4071-8839-b8fffb6d49d1"},
+                              "UserName": {"S": "username3"},
+                              "FullName": {"S": "Blue Sky Blues"}
+                          }
+                      }
                   }
               ]
           }

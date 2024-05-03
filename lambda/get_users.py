@@ -5,7 +5,7 @@ from boto3.dynamodb.table import TableResource
 from boto3.dynamodb.conditions import Attr
 
 def lamba_handler(event, context):
-    table_name = 'serverless_workshop_intro'
+    table_name = 'fds.apps.users'
     db = boto3.resource('dynamodb', 'en-us')
 
     table = db.Table(table_name)

@@ -6,7 +6,6 @@ require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.31.1
-	github.com/goccy/go-json v0.10.2
 	go.uber.org/zap v1.27.0
 )
 

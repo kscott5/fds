@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-
-	"github.com/google/uuid"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -40,7 +39,12 @@ func loadData() {
 	data[6] = [3]string{uuid.New().String(), "marivera2", "Martha Rivera"}
 	data[7] = [3]string{uuid.New().String(), "nikkwolf2", "Nikki Wolf"}
 	data[8] = [3]string{uuid.New().String(), "pasantos2", "Paulo Santos"}
-
+	
+	options := dynamodb.Options{}
+	options.BaseEndpoint = aws.String("http://localhost:2024")
+	
+	client := dynamodb.New(options)
+		
 	for _, v := range data {
 		params := dynamodb.PutItemInput {
 			TableName: aws.String("fds.apps.users"),
@@ -51,8 +55,9 @@ func loadData() {
 			},
  		} // end params
 
-		client := dynamodb.NewFromConfig(aws.Config{})
-		client.PutItem(context.Background(), &params)
+		if _, err := client.PutItem(context.Background(), &params); err != nil {
+			logger.Error(fmt.Sprintln(err))
+		}
 	}
 
 	logger.Info("End: Sample data lambda hander")
@@ -61,5 +66,6 @@ func loadData() {
 func main() {
 	logger, _ = zap.NewDevelopment()
 	
+	lambda_handler(nil, nil)
 	lambda.Start(lambda_handler)
 }
