@@ -2,77 +2,61 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
+	"reflect"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/google/uuid"
+	"github.com/aws/aws-lambda-go/lambda"
+
+	// s"github.com/aws/aws-sdk-go-v2/aws"
+	// s"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"go.uber.org/zap"
 )
 
-type Event interface{}
+// Generic key-value mapper
+type Event map[string]interface{}
 
 var logger *zap.Logger
 
-func configEndPoint() {
-	params := dynamodb.EndpointParameters{}
-	if envValue, found := os.LookupEnv("AWS_REGION"); found {
-		params.Region = aws.String(envValue)
-	} else if envValue, found := os.LookupEnv("AWS_ACCESS_KEY_ID"); found {
-		params.Endpoint = aws.String(envValue)
-	}
+var handlers = make(map[string]func(context.Context, *Event) ([]byte, error), 5)
 
-	resolver := dynamodb.NewDefaultEndpointResolverV2()
-	if endPoint, err := resolver.ResolveEndpoint(context.Background(), params); err != nil {
-
-	} else {
-		
-	}
+func getUser(ctx context.Context, in *Event) ([]byte, error) {
+	return nil, errors.New("getusers not available")
 }
-func loadData() {
-	logger.Info("Start: Sample data lambda hander")
-	// NOTE: Local development with docker pull amazon/dynamodb-local
-	logger.Info("Load test data")
-	data := make(map[int][3]string, 10)
-	data[0] = [3]string{uuid.New().String(), "marivera0", "Martha Rivera"}
-	data[1] = [3]string{uuid.New().String(), "nikkwolf0", "Nikki Wolf"}
-	data[2] = [3]string{uuid.New().String(), "pasantos0", "Paulo Santos"}
 
-	data[3] = [3]string{uuid.New().String(), "marivera1", "Martha Rivera"}
-	data[4] = [3]string{uuid.New().String(), "nikkwolf1", "Nikki Wolf"}
-	data[5] = [3]string{uuid.New().String(), "pasantos1", "Paulo Santos"}
+func getUsers(ctx context.Context, in *Event) ([]byte, error) {
+	return nil, errors.New("getusers not available")
+}
 
-	data[6] = [3]string{uuid.New().String(), "marivera2", "Martha Rivera"}
-	data[7] = [3]string{uuid.New().String(), "nikkwolf2", "Nikki Wolf"}
-	data[8] = [3]string{uuid.New().String(), "pasantos2", "Paulo Santos"}
+// curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"data": [{"hello": "world"}, {"event": "key"}, {"list": [0,1,2,3,4]} ]}' | jq
+// curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"data": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
+// curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"hello": "world", "event": "key", "list": [0,1,2,3,4]} ' | jq
+func lambda_handler(ctx context.Context, in *Event) (*Event, error) {
+	req := *in
 
-	for _, v := range data {
-		params := dynamodb.PutItemInput{
-			TableName: aws.String("fds.apps.users2"),
-			Item: map[string]types.AttributeValue{
-				"_id":      &types.AttributeValueMemberS{Value: v[0]},
-				"userid":   &types.AttributeValueMemberS{Value: v[1]},
-				"fullname": &types.AttributeValueMemberS{Value: v[2]},
-			},
-		} // end params
+	required := map[string]string{"hello": "string:required", "event": "string:required"}
+	//optional := map[string]string{"list": "[]int"}
 
-		resolver :=dynamodb.NewDefaultEndpointResolver()
-		resolver.ResolveEndpoint()
-		client := dynamodb.NewFromConfig(aws.Config{})
-		if _, err := client.PutItem(context.Background(), &params); err != nil {
-			logger.Error(fmt.Sprintln(err))
+	mapper := map[string]interface{}{"hello":"", "event":"", "list": make([]int,0)}
+
+	fmt.Println(mapper)
+
+	v := reflect.ValueOf(req)
+	iter := v.MapRange()
+	for iter.Next() {
+		if _, found := required[iter.Key().String()]; !found {
+			return nil, errors.New("request body not correct")
 		}
-		
 	}
-
-	logger.Info("End: Sample data lambda hander")
+	
+	return in, nil //errors.New("lambda_handler not available\n")
 }
 
 func main() {
 	logger, _ = zap.NewDevelopment()
 
-	loadData()
+	handlers["handler_key0"] = getUser
+	handlers["handler_key1"] = getUsers
+
+	lambda.Start(lambda_handler)
 }
