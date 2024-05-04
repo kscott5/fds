@@ -1,15 +1,13 @@
-package main
+package tmp
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"go.uber.org/zap"
-	
 )
 
 type Event interface{}
@@ -23,11 +21,10 @@ func lambda_handler(c context.Context, e *Event) ([]byte, error) {
 	cfg := aws.NewConfig()
 	cfg.Region = "us-east-1"
 
-	
-	client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options){
-		
+	client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
+
 	})
-	
+
 	params := dynamodb.ScanInput{
 		TableName: aws.String("fds.apps.users"),
 	}
@@ -41,10 +38,4 @@ func lambda_handler(c context.Context, e *Event) ([]byte, error) {
 	} else {
 		return b, nil
 	}
-}
-
-func main() {
-	logger, _ = zap.NewDevelopment()
-
-	lambda.Start(lambda_handler)
 }

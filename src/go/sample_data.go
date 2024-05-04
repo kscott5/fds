@@ -1,9 +1,9 @@
-package main
+package temp
 
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-lambda-go/lambda"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -17,7 +17,7 @@ var logger *zap.Logger
 
 func lambda_handler(c context.Context, e *Event) (*Event, error) {
 	logger.Info(fmt.Sprintln("Context:", c, "Event: ", &e))
-	
+
 	loadData()
 
 	return e, nil
@@ -26,7 +26,7 @@ func lambda_handler(c context.Context, e *Event) (*Event, error) {
 func loadData() {
 	logger.Info("Start: Sample data lambda hander")
 	// NOTE: Local development with docker pull amazon/dynamodb-local
-	logger.Info("Load test data")	
+	logger.Info("Load test data")
 	data := make(map[int][3]string, 10)
 	data[0] = [3]string{uuid.New().String(), "marivera0", "Martha Rivera"}
 	data[1] = [3]string{uuid.New().String(), "nikkwolf0", "Nikki Wolf"}
@@ -39,21 +39,21 @@ func loadData() {
 	data[6] = [3]string{uuid.New().String(), "marivera2", "Martha Rivera"}
 	data[7] = [3]string{uuid.New().String(), "nikkwolf2", "Nikki Wolf"}
 	data[8] = [3]string{uuid.New().String(), "pasantos2", "Paulo Santos"}
-	
+
 	options := dynamodb.Options{}
 	options.BaseEndpoint = aws.String("http://localhost:2024")
-	
+
 	client := dynamodb.New(options)
-		
+
 	for _, v := range data {
-		params := dynamodb.PutItemInput {
+		params := dynamodb.PutItemInput{
 			TableName: aws.String("fds.apps.users"),
 			Item: map[string]types.AttributeValue{
-				"_id": &types.AttributeValueMemberS{ Value: v[0]},
-				"userid": &types.AttributeValueMemberS{ Value: v[1] },
-				"fullname": &types.AttributeValueMemberS{ Value: v[2]},
+				"_id":      &types.AttributeValueMemberS{Value: v[0]},
+				"userid":   &types.AttributeValueMemberS{Value: v[1]},
+				"fullname": &types.AttributeValueMemberS{Value: v[2]},
 			},
- 		} // end params
+		} // end params
 
 		if _, err := client.PutItem(context.Background(), &params); err != nil {
 			logger.Error(fmt.Sprintln(err))
@@ -61,11 +61,4 @@ func loadData() {
 	}
 
 	logger.Info("End: Sample data lambda hander")
-}
-
-func main() {
-	logger, _ = zap.NewDevelopment()
-	
-	lambda_handler(nil, nil)
-	lambda.Start(lambda_handler)
 }
