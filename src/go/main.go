@@ -2,20 +2,37 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"encoding/json"
 	"os"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 
+	// ##########################################################################################################
+	//						ERROR message on AWS Lambda -> Function Name -> Test section
+	// ##########################################################################################################
+	//
+	// INIT_REPORT Init Duration: 1.57 ms	Phase: init	Status: error	Error Type: Runtime.InvalidEntrypoint
+	// INIT_REPORT Init Duration: 1.51 ms	Phase: invoke	Status: error	Error Type: Runtime.InvalidEntrypoint
+	// START RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a Version: $LATEST
+	// RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a Error: fork/exec /var/task/bootstrap: exec format error
+	// Runtime.InvalidEntrypoint
+	// END RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a
+	// REPORT RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a	Duration: 15.03 ms	Billed Duration: 16 ms	Memory Size: 128 MB	Max Memory Used: 3 MB
+	//
+	//
+	// https://docs.aws.amazon.com/lambda/latest/dg/troubleshooting-deployment.html
+	//
+	// NOTE: underscope, _, invokes packages init function only
+	// ##########################################################################################################
+	_ "github.com/aws/aws-lambda-go/lambdacontext"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"go.uber.org/zap"
 )
-
-var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
 
 // AWS API Gateway Passthrough template format
 // curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d \
@@ -40,8 +57,8 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
 		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Source:          os.Getenv("AWS_REGION"),
-		CanExpire:       true,
-		Expires:         time.Now().Add(time.Second * 240),
+		CanExpire:       false,		
+		Expires:         time.Now().Add(time.Hour * 1),
 	}, nil // error
 }
 
@@ -52,6 +69,7 @@ func getUser(ctx context.Context, in *Request) ([]byte, error) {
 }
 
 func getUsers(ctx context.Context, in *Request) ([]byte, error) {
+	var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
 	cfg := aws.NewConfig()
 	client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
 		options.Region = os.Getenv("AWS_REGION")
@@ -90,8 +108,8 @@ func lambda_handler(ctx context.Context, in *Request) ([]byte, error) {
 func main() {
 	logger, _ = zap.NewDevelopment()
 
-	handlers["handler_key0"] = getUser
-	handlers["handler_key1"] = getUsers
+	// handlers["handler_key0"] = getUser
+	// handlers["handler_key1"] = getUsers
 
 	lambda.Start(lambda_handler)
 }
