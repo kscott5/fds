@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-lambda-go/lambda"
 
 	// ##########################################################################################################
@@ -29,7 +30,6 @@ import (
 	// ##########################################################################################################
 	_ "github.com/aws/aws-lambda-go/lambdacontext"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"go.uber.org/zap"
 )
@@ -57,8 +57,24 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
 		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Source:          os.Getenv("AWS_REGION"),
-		CanExpire:       false,		
+		CanExpire:       false,	
+		// ##########################################################################################################
+		//						ERROR message on AWS Lambda -> Function Name -> Test section
+		// ##########################################################################################################
+		// {
+		// 		"errorMessage": "operation error DynamoDB: Scan, https response error StatusCode: 400, 
+		//		RequestID: 5FKRVNKQPAQ4MHOS32U7NO8ILNVV4KQNSO5AEMVJF66Q9ASUAAJG, api error 
+		//		UnrecognizedClientException: The security token included in the request is invalid.",
+		// 		"errorType": "OperationError"
+		// }
+		//
+		// https://repost.aws/questions/QUJ_tReBmXQzOFot6PMuY5AA/an-error-occurred-unrecognizedclientexception-when-calling-the-listclusters-operation-the-security-token-included-in-the-request-is-invalid
+		//
+		// Token Validity: Make sure the session token hasn't expired; the default duration is 1 hour, but it can be extended up to 12 hours.
+		// ##########################################################################################################
 		Expires:         time.Now().Add(time.Hour * 1),
+		// https://github.com/aws/aws-sdk-go-v2/blob/main/config/env_config.go
+		SessionToken: os.Getenv("AWS_SESSION_TOKEN"),
 	}, nil // error
 }
 
