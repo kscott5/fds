@@ -7,32 +7,11 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
-
-	// ##########################################################################################################
-	//						ERROR message on AWS Lambda -> Function Name -> Test section
-	// ##########################################################################################################
-	//
-	// INIT_REPORT Init Duration: 1.57 ms	Phase: init	Status: error	Error Type: Runtime.InvalidEntrypoint
-	// INIT_REPORT Init Duration: 1.51 ms	Phase: invoke	Status: error	Error Type: Runtime.InvalidEntrypoint
-	// START RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a Version: $LATEST
-	// RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a Error: fork/exec /var/task/bootstrap: exec format error
-	// Runtime.InvalidEntrypoint
-	// END RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a
-	// REPORT RequestId: 9b402d39-e58f-4719-ae89-711d4da3740a	Duration: 15.03 ms	Billed Duration: 16 ms	Memory Size: 128 MB	Max Memory Used: 3 MB
-	//
-	//
-	// https://docs.aws.amazon.com/lambda/latest/dg/troubleshooting-deployment.html
-	//
-	// NOTE: underscope, _, invokes packages init function only
-	// ##########################################################################################################
-	_ "github.com/aws/aws-lambda-go/lambdacontext"
-
+	
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	//"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	//"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
-
 	"go.uber.org/zap"
 )
 
@@ -64,29 +43,14 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Source:          os.Getenv("AWS_REGION"),
 		CanExpire:       false,
-		// ##########################################################################################################
-		//						ERROR message on AWS Lambda -> Function Name -> Test section
-		// ##########################################################################################################
-		// {
-		// 		"errorMessage": "operation error DynamoDB: Scan, https response error StatusCode: 400,
-		//		RequestID: 5FKRVNKQPAQ4MHOS32U7NO8ILNVV4KQNSO5AEMVJF66Q9ASUAAJG, api error
-		//		UnrecognizedClientException: The security token included in the request is invalid.",
-		// 		"errorType": "OperationError"
-		// }
-		//
-		// https://repost.aws/questions/QUJ_tReBmXQzOFot6PMuY5AA/an-error-occurred-unrecognizedclientexception-when-calling-the-listclusters-operation-the-security-token-included-in-the-request-is-invalid
-		//
-		// Token Validity: Make sure the session token hasn't expired; the default duration is 1 hour, but it can be extended up to 12 hours.
-		// ##########################################################################################################
 		Expires: time.Now().Add(time.Hour * 1),
-		// https://github.com/aws/aws-sdk-go-v2/blob/main/config/env_config.go
 		SessionToken: os.Getenv("AWS_SESSION_TOKEN"),
 	}, nil // error
 }
 
-var handlers = make(map[string]func(context.Context, *Request) (*any, error), 5)
+var handlers = make(map[string]func(context.Context, *Request) (*Response, error), 5)
 
-func getUser(ctx context.Context, in *Request) (*any, error) {
+func getUser(ctx context.Context, in *Request) (*Response, error) {
 	return nil, errors.New("getusers not available")
 }
 
@@ -133,12 +97,8 @@ func getUsers(ctx context.Context, in *Request) (*Response, error) {
 // Where "TIn" and "TOut" are types compatible with the "encoding/json" standard library.
 // See https://golang.org/pkg/encoding/json/#Unmarshal for how deserialization behaves
 func lambda_handler(ctx context.Context, in *Request) (*Response, error) {
-	// Generic example
-	// var s string = in.Mapper["event"].(string)
-	// l := in.Mapper["list"].([]interface{})
-	// sum := l[3].(float64) + l[2].(float64)
-	// fmt.Println(in.Mapper["hello"], s, l[3], "+", l[2], "=", sum)
 
+	switch in.Mapper[""]
 	return getUsers(ctx, in)
 }
 
