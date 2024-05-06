@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/smithy-go/encoding/json"
 
 	// ##########################################################################################################
 	//						ERROR message on AWS Lambda -> Function Name -> Test section
@@ -111,13 +109,12 @@ func getUsers(ctx context.Context, in *Request) (*Response, error) {
 		return nil, err
 	} else {
 		logger.Info("Scan complete")
-
 		data := make([]map[string]string, 1)
 
 		for _, item := range output.Items {
 			value := make(map[string]string)
 			for k, v := range item {
-				value[fmt.Sprintf("%s", k)] = fmt.Sprintf("%s", v)
+				value[fmt.Sprintf("%s",k)] = fmt.Sprintf("%s",v)
 			}
 
 			data = append(data, value)
