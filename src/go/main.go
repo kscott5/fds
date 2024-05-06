@@ -8,8 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/smithy-go/encoding/json"
 
 	// ##########################################################################################################
 	//						ERROR message on AWS Lambda -> Function Name -> Test section
@@ -31,6 +32,9 @@ import (
 	_ "github.com/aws/aws-lambda-go/lambdacontext"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	//"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	//"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+
 	"go.uber.org/zap"
 )
 
@@ -48,6 +52,10 @@ type Request struct {
 	Mapper map[string]interface{} `json:"mapper"`
 }
 
+type Response struct {
+	Data []map[string]string `json:"data"`
+}
+
 var logger *zap.Logger
 
 type LocalCredentials aws.AnonymousCredentials
@@ -57,13 +65,13 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
 		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Source:          os.Getenv("AWS_REGION"),
-		CanExpire:       false,	
+		CanExpire:       false,
 		// ##########################################################################################################
 		//						ERROR message on AWS Lambda -> Function Name -> Test section
 		// ##########################################################################################################
 		// {
-		// 		"errorMessage": "operation error DynamoDB: Scan, https response error StatusCode: 400, 
-		//		RequestID: 5FKRVNKQPAQ4MHOS32U7NO8ILNVV4KQNSO5AEMVJF66Q9ASUAAJG, api error 
+		// 		"errorMessage": "operation error DynamoDB: Scan, https response error StatusCode: 400,
+		//		RequestID: 5FKRVNKQPAQ4MHOS32U7NO8ILNVV4KQNSO5AEMVJF66Q9ASUAAJG, api error
 		//		UnrecognizedClientException: The security token included in the request is invalid.",
 		// 		"errorType": "OperationError"
 		// }
@@ -72,19 +80,19 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 		//
 		// Token Validity: Make sure the session token hasn't expired; the default duration is 1 hour, but it can be extended up to 12 hours.
 		// ##########################################################################################################
-		Expires:         time.Now().Add(time.Hour * 1),
+		Expires: time.Now().Add(time.Hour * 1),
 		// https://github.com/aws/aws-sdk-go-v2/blob/main/config/env_config.go
 		SessionToken: os.Getenv("AWS_SESSION_TOKEN"),
 	}, nil // error
 }
 
-var handlers = make(map[string]func(context.Context, *Request) ([]byte, error), 5)
+var handlers = make(map[string]func(context.Context, *Request) (*any, error), 5)
 
-func getUser(ctx context.Context, in *Request) ([]byte, error) {
+func getUser(ctx context.Context, in *Request) (*any, error) {
 	return nil, errors.New("getusers not available")
 }
 
-func getUsers(ctx context.Context, in *Request) ([]byte, error) {
+func getUsers(ctx context.Context, in *Request) (*Response, error) {
 	var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
 	cfg := aws.NewConfig()
 	client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
@@ -94,24 +102,40 @@ func getUsers(ctx context.Context, in *Request) ([]byte, error) {
 
 	params := dynamodb.ScanInput{
 		TableName: aws.String(table_name),
+		//AttributesToGet: []string {"_id", "username", "fullname"},
+		//FilterExpression: aws.String("exists(fullname)"),
 	}
 
 	if output, err := client.Scan(context.Background(), &params); err != nil {
 		logger.Error(fmt.Sprintln(err))
 		return nil, err
-	} else if data, err := json.Marshal(output.Items); err != nil {
-		logger.Error(fmt.Sprintln(err))
-		return nil, err
 	} else {
 		logger.Info("Scan complete")
-		return data, nil
+
+		data := make([]map[string]string, 1)
+
+		for _, item := range output.Items {
+			value := make(map[string]string)
+			for k, v := range item {
+				value[fmt.Sprintf("%s", k)] = fmt.Sprintf("%s", v)
+			}
+
+			data = append(data, value)
+		}
+
+		response := Response{
+			Data: data,
+		}
+
+		fmt.Println(response)
+		return &response, nil
 	}
 }
 
 // curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"mapper": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
 // Where "TIn" and "TOut" are types compatible with the "encoding/json" standard library.
 // See https://golang.org/pkg/encoding/json/#Unmarshal for how deserialization behaves
-func lambda_handler(ctx context.Context, in *Request) ([]byte, error) {
+func lambda_handler(ctx context.Context, in *Request) (*Response, error) {
 	// Generic example
 	// var s string = in.Mapper["event"].(string)
 	// l := in.Mapper["list"].([]interface{})
