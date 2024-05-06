@@ -1,4 +1,4 @@
-package temp
+package main
 
 import (
 	"context"
@@ -8,20 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 type Event interface{}
-
-var logger *zap.Logger
-
-func lambda_handler(c context.Context, e *Event) (*Event, error) {
-	logger.Info(fmt.Sprintln("Context:", c, "Event: ", &e))
-
-	loadData()
-
-	return e, nil
-}
 
 func loadData() {
 	logger.Info("Start: Sample data lambda hander")
