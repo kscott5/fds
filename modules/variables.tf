@@ -17,7 +17,11 @@ variable "lambda_memory" {
   default = "128"
 }
 variable "lambda_runtime" {
-  default = "python3.12"
+  type = list(string)
+  default = [
+    "python3.12",
+    "provided.al2023"
+  ]
 }
 variable "lambda_timeout" {
   default = "100"
