@@ -14,15 +14,11 @@ ddbTable = dynamodb.Table(USERS_TABLE)
 def lambda_handler(event, context):
     route_key = f"{event['httpMethod']} {event['resource']}"
 
-    headers = {
-         'Content-Type': 'application/json',
-         'Access-Control-Allow-Orgins': '*',
-    }
     status_code = 400
     response_body = {}
 
     try:    
-        if route_key == 'GET /users':
+        if route_key == 'POST /users':
             ddbResults = ddbTable.scan(Select='ALL_ATTRIBUTES')
             response_body = ddbResults['Items']
             status_code = 200
@@ -31,7 +27,6 @@ def lambda_handler(event, context):
             response_body = f"Error: {str(err)}"
 
     return {
-         'headers': headers,
          'statuscode': status_code,
          'body': response_body
     }
