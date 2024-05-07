@@ -14,7 +14,7 @@ resource "aws_lambda_function" "getusers" {
   role             = aws_iam_role.userfunctions_lambda_role.arn
   handler          = "userservice.lambda_handler"
   source_code_hash = data.archive_file.userfunctions_lambda_zip.output_base64sha256
-  runtime          = var.lambda_runtime
+  runtime          = var.lambda_runtime[0]
   timeout          = var.lambda_timeout
   tracing_config {
     mode = var.lambda_tracing_config
