@@ -16,6 +16,9 @@ def lambda_handler(event, context):
 
     status_code = 400
     response_body = {}
+    headers = {
+         'content-type': 'application/json'
+    }
 
     try:    
         if route_key == 'GET /users':
@@ -28,6 +31,7 @@ def lambda_handler(event, context):
 
     return {
          'statusCode': status_code,
+         'headers': headers,
          'body': json.dumps(response_body)
     }
 
