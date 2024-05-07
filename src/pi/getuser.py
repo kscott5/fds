@@ -7,7 +7,7 @@ from boto3.dynamodb.table import TableResource
 from boto3.dynamodb.conditions import Attr # allows use of FilterExpression=Attr('UserId').Exists() or others
 
 # Prepare DynamoDB client
-USERS_TABLE = os.getenv('USERS_TABLE', 'fds.apps.users')
+USERS_TABLE = os.getenv('FDS_APPS_USERS_TABLE', 'FDSAppsUsers')
 dynamodb = boto3.resource('dynamodb')
 ddbTable = dynamodb.Table(USERS_TABLE)
 
@@ -15,8 +15,8 @@ def lambda_handler(event, context):
     route_key = f"{event['httpMethod']} {event['resource']}"
 
     headers = {
-         'Content-Type': 'application/json',
-         'Access-Control-Allow-Orgins': '*',
+         'conten-type': 'application/json',
+         'access-control-allow-orgins': '*',
     }
     status_code = 400
     response_body = {}
@@ -39,5 +39,5 @@ def lambda_handler(event, context):
     return {
          'headers': headers,
          'statuscode': status_code,
-         'body': response_body
+         'body': json.dumps(response_body)
     }

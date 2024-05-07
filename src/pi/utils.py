@@ -2,7 +2,7 @@ import boto3
 import uuid
 
 def load_test_data(event, context):
-    table_name = 'fds.apps.users'
+    table_name = os.getenv('FDS_APPS_USERS_TABLE', 'FDSAppsUsers')
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(table_name)
 

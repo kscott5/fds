@@ -111,7 +111,10 @@ func main() {
 		logger.Info("lambda function: dynamodb scan users")
 		logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
 
-		var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
+		table_name, found := os.LookupEnv("FDS_APPS_USERS_TABLE")
+		if !found {
+			table_name = "FDSAppsUsers"
+		}
 
 		cfg := aws.NewConfig()
 		client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
