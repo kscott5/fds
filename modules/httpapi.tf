@@ -3,18 +3,19 @@
 resource "aws_api_gateway_rest_api" "getusers" {
   name = "${var.workshop_stack_base_name}.api.getusers"
   body = jsonencode({
-    openapi = "3.0.2"
+    openapi = "3.0.1"
     info = {
-      title   = "FDS RestAPI Get Users",
+      title   = "FDS RestAPI Get Users (Python)",
       version = "1.0"
     },
     paths = {
       "/users" = {
         get = {
           x-amazon-apigateway-integration = {
-            httpMethod = "POST"
-            type       = "aws_proxy"
-            uri        = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getusers.arn}/invocations"
+            httpMethod          = "POST"
+            type                = "aws_proxy"
+            passthroughBehavior = "WHEN_NO_MATCH"
+            uri                 = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getusers.arn}/invocations"
           }
         }
       }
