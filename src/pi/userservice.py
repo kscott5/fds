@@ -7,7 +7,7 @@ from boto3.dynamodb.table import TableResource
 from boto3.dynamodb.conditions import Attr # allows use of FilterExpression=Attr('UserId').Exists() or others
 
 # Prepare DynamoDB client
-USERS_TABLE = os.getenv('FDS_APPS_USERS_TABLE', 'fds.apps.users')
+USERS_TABLE = os.getenv('FDS_APPS_USERS_TABLE', 'FDSAppsUsers')
 dynamodb = boto3.resource('dynamodb')
 ddbTable = dynamodb.Table(USERS_TABLE)
 
