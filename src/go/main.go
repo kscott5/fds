@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	
+
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
-	
+
 	"go.uber.org/zap"
 )
 
@@ -102,8 +103,10 @@ func main() {
 	logger, _ = zap.NewDevelopment()
 
 	// AWS SDK lambda function handler
-	lambda.Start(func (ctx context.Context, in *Request)(*Response, error) {
+	lambda.Start(func (ctx context.Context, request *Request)(*Response, error) {
 		logger.Info("lambda function: dynamodb scan users")
+		logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
+
 		var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
 
 		cfg := aws.NewConfig()
