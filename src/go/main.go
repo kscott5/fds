@@ -31,6 +31,8 @@ import (
 //			} \
 //	}' | jq
 type Request struct {
+	HttpMethod string `json:"httpMethod"`
+	Resource string `json:"resrouce"`
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
@@ -80,6 +82,8 @@ type Request struct {
 // 		]
 //  }
 type Response struct {
+	StatusCode int `json:"statusCode"`
+	Headers map[string]string `json:"headers"`
 	Data interface{} `json:"data"`
 }
 
@@ -119,6 +123,9 @@ func main() {
 			TableName: aws.String(table_name),
 		}
 	
+		headers := make(map[string]string, 1)
+		headers["content-type"] = "application/json"
+
 		var out interface{}
 		if output, err := client.Scan(context.Background(), &params); err != nil {
 			return nil, err
@@ -126,6 +133,8 @@ func main() {
 			return nil, err
 		} else {
 			response := Response{
+				StatusCode: 200,
+				Headers: headers,
 				Data: out,
 			}
 			return &response, nil
