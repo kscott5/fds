@@ -9,7 +9,7 @@ data "archive_file" "userfunctions_lambda_zip" {
 
 resource "aws_lambda_function" "getusers" {
   filename         = data.archive_file.userfunctions_lambda_zip.output_path
-  function_name    = "userservice"
+  function_name    = "fds_apps_get_users"
   description      = "${var.workshop_stack_base_name}.users"
   role             = aws_iam_role.userfunctions_lambda_role.arn
   handler          = "userservice.lambda_handler"
@@ -21,7 +21,7 @@ resource "aws_lambda_function" "getusers" {
   }
   environment {
     variables = {
-      USERS_TABLE = aws_dynamodb_table.users_table.id
+      FDS_APPS_USERS_TABLE = aws_dynamodb_table.users_table.id
     }
   }
 }
