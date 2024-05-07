@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     response_body = {}
 
     try:    
-        if route_key == 'POST /users':
+        if route_key == 'GET /users':
             ddbResults = ddbTable.scan(Select='ALL_ATTRIBUTES')
             response_body = ddbResults['Items']
             status_code = 200
