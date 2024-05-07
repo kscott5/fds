@@ -1,7 +1,10 @@
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api
 # https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-integration-async.html
 resource "aws_api_gateway_rest_api" "getusers" {
-  name = "${var.workshop_stack_base_name}.api.getusers"
+  name = "${var.workshop_stack_base_name}GetUsers"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
   body = jsonencode({
     openapi = "3.0.1"
     info = {
@@ -42,7 +45,7 @@ resource "aws_api_gateway_stage" "getusers" {
   deployment_id = aws_api_gateway_deployment.getusers.id
 }
 resource "aws_lambda_permission" "api_getusers" {
-  statement_id  = "AllowHttpGetUsers"
+  statement_id  = "${var.workshop_stack_base_name}LambdaPermission"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.getusers.function_name
   principal     = "apigateway.${var.region}.amazonaws.com"

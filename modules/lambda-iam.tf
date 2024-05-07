@@ -1,9 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-resource "aws_iam_role" "userfunctions_lambda_role" {
-  name               = "${var.workshop_stack_base_name}_userfunctions_lambda_role"
-  description        = "Lambda function IAM role"
+resource "aws_iam_role" "lambda_role" {
+  name               = "${var.workshop_stack_base_name}LambdaRole"
+  description        = "FDS Lambda function IAM role"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -20,9 +20,9 @@ resource "aws_iam_role" "userfunctions_lambda_role" {
 EOF
 }
 
-resource "aws_iam_policy" "userfunctions_lambda_role_policy" {
-  name        = "${var.workshop_stack_base_name}_userfunctions_lambda_role_policy"
-  description = "Lambda function policy"
+resource "aws_iam_policy" "lambda_role_policy" {
+  name        = "${var.workshop_stack_base_name}LambdaRolePolicy"
+  description = "FDS Lambda function policy"
 
   policy = <<EOF
 {
@@ -63,8 +63,8 @@ resource "aws_iam_policy" "userfunctions_lambda_role_policy" {
 EOF
 }
 
-resource "aws_iam_policy_attachment" "userfunctions_lambda_attach" {
-  name       = "${var.workshop_stack_base_name}_userfunctions_lambda_attachment"
-  roles      = [aws_iam_role.userfunctions_lambda_role.name]
-  policy_arn = aws_iam_policy.userfunctions_lambda_role_policy.arn
+resource "aws_iam_policy_attachment" "lambda_attach" {
+  name       = "${var.workshop_stack_base_name}LambdaPolicyAttachment"
+  roles      = [aws_iam_role.lambda_role.name]
+  policy_arn = aws_iam_policy.lambda_role_policy.arn
 }
