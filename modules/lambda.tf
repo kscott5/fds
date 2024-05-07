@@ -3,7 +3,7 @@
 
 data "archive_file" "userfunctions_lambda_zip" {
   type        = "zip"
-  output_path = "../.dist/${var.workshop_stack_base_name}.lambda.getusers.zip"
+  output_path = "../.dist/${var.workshop_stack_base_name}.lambda.pi.zip"
   source_dir  = "../src/pi"
 }
 
