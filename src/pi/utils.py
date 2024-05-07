@@ -1,7 +1,7 @@
 import boto3
 import uuid
 
-def lambda_handler(event, context):
+def load_test_data(event, context):
     table_name = 'fds.apps.users'
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(table_name)
@@ -28,4 +28,4 @@ def lambda_handler(event, context):
     return {'message': result}
 
 if __name__ == "__main__" :
-    lambda_handler({}, {})
+    load_test_data({}, {})
