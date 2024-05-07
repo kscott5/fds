@@ -2,81 +2,130 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
-	
-fds "github.com/kscott5/fds/lambda"
-	_ "github.com/aws/aws-lambda-go/lambdacontext"
-	"github.com/aws/aws-lambda-go/lambda"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	
+	"github.com/aws/aws-lambda-go/lambda"
+	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
+	
 	"go.uber.org/zap"
 )
 
+// AWS API Gateway Passthrough template requestParameters.  Reference OpenAPI
+// This struct accepts any JSON parameters{} map object, key-value pair.
+//
+// Example:
+//
+// curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d \
+//	'{
+//			"parameters": { \
+//		 		"hello": "world", \
+//		 		"event": "key", \
+//		 		"list": [0,1,2,3,4] \
+//			} \
+//	}' | jq
+type Request struct {
+	Parameters map[string]interface{} `json:"parameters"`
+}
+
+// AWS API Gateway response template
+// This struct returns a JSON data array or map object.
+//
+// Example:
+//
+// {
+// 		"data":  
+// 		[ 
+// 			{
+// 				"FullName": "Paulo Santos1",
+// 				"Userid": "pasantos1",
+// 				"_id": "589944140a20444fb3c85aa386acd9c4"
+// 			},
+// 			{
+// 				"_id": "f6b3fb73-4fbb-40c0-9b4b-fa4c03c953ab",
+// 				"age": 23,
+// 				"disabilityTypes": [
+// 					"independent living",
+// 					"hearing",
+// 					"vision",
+// 					"mobility",
+// 					"self-care"
+// 				],
+// 				"educationLevel": "Some College",
+// 				"employmentStatus": "1099",
+// 				"gender": "transwoman",
+// 				"hasDisabilities": false,
+// 				"healthTypes": [
+// 					"Binge drinker",
+// 					"Sleeplessness",
+// 					"Smoker",
+// 					"Obesity",
+// 					"Sicklecell"
+// 				],
+// 				"martialStatus": "HomemakerMarried",
+// 				"source": {
+// 					"description": "Disability and Health Data System",
+// 					"type": "Internal Marketing Research",
+// 					"version": "1.0"
+// 				},
+// 				"userid": "f6b3fb73-4fbb-40c0-9b4b-fa4c03c953ab",
+// 				"username": "f6b3fb73-4fbb-40c0-9b4b-fa4c03c953ab"
+// 			}
+// 		]
+//  }
+type Response struct {
+	Data interface{} `json:"data"`
+}
+
+// Local Credentials implements CredentialsProvider.Retrieve method
+type LocalCredentials aws.AnonymousCredentials
+func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return aws.Credentials{
+		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
+		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		Source:          os.Getenv("AWS_REGION"),
+		CanExpire:       false,
+		Expires: time.Now().Add(time.Hour * 1),
+		SessionToken: os.Getenv("AWS_SESSION_TOKEN"),
+	}, nil // error
+}
+
 var logger *zap.Logger
 
-
-var handlers = make(map[string]func(context.Context, *fds.Request) (*fds.Response, error), 5)
-
-func getUser(ctx context.Context, in *fds.Request) (*fds.Response, error) {
-	return nil, errors.New("getusers not available")
-}
-
-func getUsers(ctx context.Context, in *fds.Request) (*fds.Response, error) {
-	var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
-	cfg := aws.NewConfig()
-	client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
-		options.Region = os.Getenv("AWS_REGION")
-		options.Credentials = aws.NewCredentialsCache(fds.LocalCredentials{})
-	})
-
-	params := dynamodb.ScanInput{
-		TableName: aws.String(table_name),
-		//AttributesToGet: []string {"_id", "username", "fullname"},
-		//FilterExpression: aws.String("exists(fullname)"),
-	}
-
-	if output, err := client.Scan(context.Background(), &params); err != nil {
-		logger.Error(fmt.Sprintln(err))
-		return nil, err
-	} else {
-		logger.Info("Scan complete")
-		data := make([]map[string]string, 1)
-
-		for _, item := range output.Items {
-			value := make(map[string]string)
-			for k, v := range item {
-				value[fmt.Sprintf("%s",k)] = fmt.Sprintf("%s",v)
-			}
-
-			data = append(data, value)
-		}
-
-		response := fds.Response{
-			Data: data,
-		}
-
-		fmt.Println(response)
-		return &response, nil
-	}
-}
-
-// curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"mapper": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
-// Where "TIn" and "TOut" are types compatible with the "encoding/json" standard library.
-// See https://golang.org/pkg/encoding/json/#Unmarshal for how deserialization behaves
-func lambda_handler(ctx context.Context, in *fds.Request) (*fds.Response, error) {
-
-	
-	return getUsers(ctx, in)
-}
-
+// curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"parameters": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
 func main() {
 	logger, _ = zap.NewDevelopment()
 
-	// handlers["handler_key0"] = getUser
-	// handlers["handler_key1"] = getUsers
+	// AWS SDK lambda function handler
+	lambda.Start(func (ctx context.Context, in *Request)(*Response, error) {
+		logger.Info("lambda function: dynamodb scan users")
+		var table_name string = os.Getenv("FDS_APPS_USERS_TABLE")
 
-	lambda.Start(lambda_handler)
+		cfg := aws.NewConfig()
+		client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
+			options.Region = os.Getenv("AWS_REGION")
+			options.Credentials = aws.NewCredentialsCache(LocalCredentials{})
+		})
+	
+		params := dynamodb.ScanInput{
+			TableName: aws.String(table_name),
+		}
+	
+		var out interface{}
+		if output, err := client.Scan(context.Background(), &params); err != nil {
+			return nil, err
+		} else if err := attributevalue.UnmarshalListOfMaps(output.Items, &out); err != nil {
+			return nil, err
+		} else {
+			response := Response{
+				Data: out,
+			}
+			return &response, nil
+		}
+	})
 }
