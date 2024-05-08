@@ -100,7 +100,51 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 	}, nil // error
 }
 
-var logger *zap.Logger
+var (
+	logger *zap.Logger
+	tableName string
+
+	response Response = Response{
+		StatusCode: 200,
+		Headers: map[string]string{
+			"header": "application/jsom",
+		},
+		Data: nil,
+	}
+)
+
+func newDynamodbClient() (*dynamodb.Client) {
+	var found bool
+	if tableName, found = os.LookupEnv("FDS_APPS_USERS_TABLE"); !found {
+		tableName = "FDSAppsUsers"
+	}
+
+	cfg := aws.NewConfig()
+	return dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
+		options.Region = os.Getenv("AWS_REGION")
+		options.Credentials = aws.NewCredentialsCache(LocalCredentials{})
+	})
+}
+
+func getUsers(_ context.Context, request *Request)(*Response, error) {
+	logger.Info("lambda function: dynamodb scan users")
+	logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
+
+	client := newDynamodbClient()
+	params := dynamodb.ScanInput{
+		TableName: aws.String(tableName),
+	}
+
+	var out interface{}
+	if output, err := client.Scan(context.Background(), &params); err != nil {
+		return nil, err
+	} else if err := attributevalue.UnmarshalListOfMaps(output.Items, &out); err != nil {
+		return nil, err
+	} else {
+		response.Data = out
+		return &response, nil
+	}
+}
 
 // curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"parameters": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
 func main() {
@@ -108,39 +152,14 @@ func main() {
 
 	// AWS SDK lambda function handler
 	lambda.Start(func (ctx context.Context, request *Request)(*Response, error) {
-		logger.Info("lambda function: dynamodb scan users")
-		logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
+		requestKey := fmt.Sprintf("%s %s", request.HttpMethod, request.Resource)
 
-		table_name, found := os.LookupEnv("FDS_APPS_USERS_TABLE")
-		if !found {
-			table_name = "FDSAppsUsers"
-		}
+		switch requestKey {
+			case "GET /users":
+				return getUsers(ctx, request)
 
-		cfg := aws.NewConfig()
-		client := dynamodb.NewFromConfig(*cfg, func(options *dynamodb.Options) {
-			options.Region = os.Getenv("AWS_REGION")
-			options.Credentials = aws.NewCredentialsCache(LocalCredentials{})
-		})
-	
-		params := dynamodb.ScanInput{
-			TableName: aws.String(table_name),
-		}
-	
-		headers := make(map[string]string, 1)
-		headers["content-type"] = "application/json"
-
-		var out interface{}
-		if output, err := client.Scan(context.Background(), &params); err != nil {
-			return nil, err
-		} else if err := attributevalue.UnmarshalListOfMaps(output.Items, &out); err != nil {
-			return nil, err
-		} else {
-			response := Response{
-				StatusCode: 200,
-				Headers: headers,
-				Data: out,
-			}
-			return &response, nil
+			default:
+				return nil, fmt.Errorf("invalid request: %s", requestKey)
 		}
 	})
 }
