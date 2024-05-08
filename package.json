@@ -8,6 +8,7 @@
     "go":    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C ~/apps/fds/src/go -tags lambda.norpc -o ~/apps/fds/.dist/bootstrap main.go",
     "goarm": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/go -tags lambda.norpc -o ~/apps/fds/.dist/bootstrap main.go",
     "clean": "rm  ./.dist/** -rf",
+    "output": "terraform -chdir=./modules output",
     "terraform": "terraform -chdir=./modules init && terraform -chdir=./modules fmt && terraform -chdir=./modules validate",
     "deploy": "npm run clean && npm run buildgoarm && AWS_ENDPOINT_URL_DYNAMODB='' npm run terraform && AWS_ENDPOINT_URL_DYNAMODB='' terraform -chdir=./modules apply --auto-approve",
     "buildgoarm": "npm run clean && npm run goarm",
