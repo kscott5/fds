@@ -14,6 +14,11 @@ resource "aws_api_gateway_rest_api" "getusers" {
     paths = {
       "/users" = {
         get = {
+          security = [
+            {
+              "lambdaTokenAuthorizer" : []
+            }
+          ]
           x-amazon-apigateway-integration = {
             httpMethod          = "POST"
             type                = "aws_proxy"
@@ -40,16 +45,17 @@ resource "aws_api_gateway_deployment" "getusers" {
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_stage
 resource "aws_api_gateway_stage" "getusers" {
-  rest_api_id   = aws_api_gateway_rest_api.getusers.id
-  stage_name    = "dev"
-  deployment_id = aws_api_gateway_deployment.getusers.id
+  rest_api_id          = aws_api_gateway_rest_api.getusers.id
+  stage_name           = "dev"
+  deployment_id        = aws_api_gateway_deployment.getusers.id
+  xray_tracing_enabled = true
 }
 resource "aws_lambda_permission" "api_getusers" {
   statement_id  = "${var.workshop_stack_base_name}LambdaPermission"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.getusers.function_name
   principal     = "apigateway.${var.region}.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.getusers.execution_arn}/*/GET/users"
+  source_arn    = "${aws_api_gateway_rest_api.getusers.execution_arn}/*/*/*"
 }
 output "aws_api_gateway_stage" {
   value = aws_api_gateway_stage.getusers.invoke_url

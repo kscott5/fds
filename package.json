@@ -9,7 +9,7 @@
     "goarm": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/go -tags lambda.norpc -o ~/apps/fds/.dist/bootstrap main.go",
     "clean": "rm  ./.dist/** -rf",
     "terraform": "terraform -chdir=./modules init && terraform -chdir=./modules fmt && terraform -chdir=./modules validate",
-    "deploy": "npm run clean && npm run buildgoarm && npm run terraform && terraform -chdir=./modules apply",
+    "deploy": "npm run clean && npm run buildgoarm && AWS_ENDPOINT_URL_DYNAMODB='' npm run terraform && AWS_ENDPOINT_URL_DYNAMODB='' terraform -chdir=./modules apply --auto-approve",
     "buildgoarm": "npm run clean && npm run goarm",
     "help": "node usage.js",
     "dynamodb": "docker run --rm --name ddb_dev -p 2024:8000 --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --env AWS_REGION=$AWS_REGION -d amazon/dynamodb-local",

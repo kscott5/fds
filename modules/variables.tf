@@ -33,3 +33,6 @@ variable "lambda_timeout" {
 variable "lambda_tracing_config" {
   default = "Active"
 }
+variable "user_pool_admin_group_name" {
+  default = "FDSAppsPoolAdmins"
+}
