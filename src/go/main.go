@@ -7,83 +7,24 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/google/martian/log"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-
+	
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
 
 	"go.uber.org/zap"
 )
 
-// AWS API Gateway Passthrough template requestParameters.  Reference OpenAPI
-// This struct accepts any JSON parameters{} map object, key-value pair.
-//
-// Example:
-//
-//	curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d \
-//		'{
-//				"parameters": { \
-//			 		"hello": "world", \
-//			 		"event": "key", \
-//			 		"list": [0,1,2,3,4] \
-//				} \
-//		}' | jq
 type Request struct {
-	HttpMethod string                 `json:"httpMethod"`
-	Resource   string                 `json:"resource"`
-	Parameters map[string]interface{} `json:"parameters"`
+	HttpMethod string                 		`json:"httpMethod"`
+	Resource   string                 		`json:"resource"`
+	Parameters map[string]interface{} 		`json:"parameters,omitempty"`
+	PathParameters map[string]interface{} 	`json:"pathParameters,omitempty"`
 }
 
-// AWS API Gateway response template
-// This struct returns a JSON data array or map object.
-//
-// Example:
-//
-//	{
-//			"data":
-//			[
-//				{
-//					"FullName": "Paulo Santos1",
-//					"Userid": "pasantos1",
-//					"_id": "589944140a20444fb3c85aa386acd9c4"
-//				},
-//				{
-//					"_id": "f6b3fb73-4fbb-40c0-9b4b-fa4c03c953ab",
-//					"age": 23,
-//					"disabilityTypes": [
-//						"independent living",
-//						"hearing",
-//						"vision",
-//						"mobility",
-//						"self-care"
-//					],
-//					"educationLevel": "Some College",
-//					"employmentStatus": "1099",
-//					"gender": "transwoman",
-//					"hasDisabilities": false,
-//					"healthTypes": [
-//						"Binge drinker",
-//						"Sleeplessness",
-//						"Smoker",
-//						"Obesity",
-//						"Sicklecell"
-//					],
-//					"martialStatus": "HomemakerMarried",
-//					"source": {
-//						"description": "Disability and Health Data System",
-//						"type": "Internal Marketing Research",
-//						"version": "1.0"
-//					},
-//					"userid": "f6b3fb73-4fbb-40c0-9b4b-fa4c03c953ab",
-//					"username": "f6b3fb73-4fbb-40c0-9b4b-fa4c03c953ab"
-//				}
-//			]
-//	 }
 type Response struct {
 	StatusCode int               `json:"statusCode"`
 	Headers    map[string]string `json:"headers"`
@@ -107,13 +48,9 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 var (
 	logger    *zap.Logger
 	tableName string
-
-	response Response = Response{
-		StatusCode: 200,
-		Headers: map[string]string{
-			"header": "application/jsom",
-		},
-		Data: nil,
+	
+	headers map[string]string = map[string]string{
+		"header": "application/jsom",
 	}
 )
 
@@ -144,18 +81,19 @@ func parametersExists(parameters map[string]interface{}, requires map[string]str
 func putUser(ctx context.Context, request *Request) (*Response, error) {
 	logger.Info("lambda function: dynamodb scan users")
 
-	required := map[string]string{"username": "string", "fullname": "string"}
-	if err := parametersExists(request.Parameters, required); err != nil {
-		log.Error(err)
+	requires := map[string]string{"username": "string", "fullname": "string"}
+	if err := parametersExists(request.Parameters, requires); err != nil {
+		logger.Error(fmt.Sprint(err))
 		
-		return nil, err
+		return nil, fmt.Errorf("requires: ", requires)
 	}
 
 	attrs := request.Parameters
 	attrs["_id"] = uuid.New().String()
 
 	if input, err := attributevalue.MarshalMap(attrs); err != nil {
-		return nil, err
+		logger.Error(fmt.Sprint(err))
+		return nil, fmt.Errorf("json format and mappers requires: ", requires)
 	} else {
 		client := newDynamodbClient()
 		params := dynamodb.PutItemInput{
@@ -164,28 +102,55 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 		}
 
 		if _, err := client.PutItem(ctx, &params); err != nil {
+			logger.Error(fmt.Sprint(err))
 			return nil, err
 		} else {
-			response.Data = map[string]string{"_id": attrs["_id"].(string)}
+			response := Response{
+				StatusCode: 200,
+				Headers: headers,
+				Data: map[string]string{"_id": attrs["_id"].(string)},
+			}
+	
 			return &response, nil
 		}
 	}
 }
+
 func getUser(ctx context.Context, request *Request) (*Response, error) {
-	logger.Info("lambda function: dynamodb  scan get user")
+	logger.Info("lambda function: dynamodb get item user")
+	
+	requires := map[string]string{"_id": "string"}
+	if err := parametersExists(request.Parameters, requires); err != nil {
+		logger.Error(fmt.Sprint(err))
+		
+		return nil, fmt.Errorf("requires: ", requires)
+	}
+
+	attrs := request.Parameters
+	key, _ := attributevalue.MarshalMap(attrs)
 
 	client := newDynamodbClient()
 	params := dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
-		Key:
+		Key: key,
 	}
 
-	if output, err: = client.GetItem(ctx, &params); err != nil {
-		logger.Error(err)
+	if output, err := client.GetItem(ctx, &params); err != nil {
+		logger.Error(fmt.Sprint(err))
 		return nil, fmt.Errorf("could not access this user data")
-	}
+	} else {
+		
+		var data interface{}
+		attributevalue.UnmarshalMap(output.Item, data)
 
-	return nil, fmt.Errorf("not available")
+		response := Response{
+			StatusCode: 200,
+			Headers: headers,
+			Data: data,
+		}
+
+		return &response, nil
+	}
 }
 
 func getUsers(ctx context.Context, request *Request) (*Response, error) {
@@ -202,14 +167,21 @@ func getUsers(ctx context.Context, request *Request) (*Response, error) {
 	} else if err := attributevalue.UnmarshalListOfMaps(output.Items, &out); err != nil {
 		return nil, err
 	} else {
-		response.Data = out
+		response := Response{
+			StatusCode: 200,
+			Headers: headers,
+			Data: out,
+		}
+
 		return &response, nil
+
 	}
 }
 
 // curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"parameters": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
 func main() {
 	logger, _ = zap.NewDevelopment()
+	logger.Info("FDS main")
 
 	// AWS SDK lambda function handler
 	lambda.Start(func(ctx context.Context, request *Request) (*Response, error) {
@@ -219,6 +191,8 @@ func main() {
 		logger.Debug(requestKey)
 
 		switch requestKey {
+		case "GET /users/{user}":
+			return getUser(ctx, request)
 		case "GET /users":
 			return getUsers(ctx, request)
 		case "PUT /user":
