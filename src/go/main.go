@@ -3,13 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
@@ -126,17 +129,50 @@ func newDynamodbClient() (*dynamodb.Client) {
 	})
 }
 
-func getUsers(_ context.Context, request *Request)(*Response, error) {
+func putUser(ctx context.Context, request *Request)(*Response, error) {
+	logger.Info("lambda function: dynamodb scan users")
+	logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
+
+	required := map[string]string{"username":"string", "fullname":"string"}
+	for k := range required {
+		if found := request.Parameters[k]; found == nil {
+			return nil, fmt.Errorf("required request parameters: %s", required)
+		}
+	}
+
+	attrs := request.Parameters
+	attrs["_id"] = uuid.New().String()
+
+	if input, err  := attributevalue.MarshalMap(attrs); err != nil {
+		return nil, err
+	} else {
+		client := newDynamodbClient()
+		params := dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item: input,
+		}
+
+		if _, err := client.PutItem(ctx, &params); err != nil {
+			return nil, err
+		} else {
+			response.Data = map[string]string{"_id": attrs["_id"].(string) }
+			return &response, nil
+		}
+	}
+}
+
+func getUsers(ctx context.Context, request *Request)(*Response, error) {
 	logger.Info("lambda function: dynamodb scan users")
 	logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
 
 	client := newDynamodbClient()
 	params := dynamodb.ScanInput{
 		TableName: aws.String(tableName),
+
 	}
 
 	var out interface{}
-	if output, err := client.Scan(context.Background(), &params); err != nil {
+	if output, err := client.Scan(ctx, &params); err != nil {
 		return nil, err
 	} else if err := attributevalue.UnmarshalListOfMaps(output.Items, &out); err != nil {
 		return nil, err
@@ -157,7 +193,8 @@ func main() {
 		switch requestKey {
 			case "GET /users":
 				return getUsers(ctx, request)
-
+			case "Put /user":
+				return putUser(ctx, request)
 			default:
 				return nil, fmt.Errorf("invalid request: %s", requestKey)
 		}
