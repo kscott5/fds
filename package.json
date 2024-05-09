@@ -18,7 +18,7 @@
     "aws_ddb_items": "aws dynamodb batch-write-item --endpoint-url $AWS_ENDPOINT_URL_DYNAMODB --request file://./data/data.json",
     "help": "node usage.js",
     "docker_db": "docker run --rm --name ddb_dev -p 2024:8000 --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --env AWS_REGION=$AWS_REGION -d amazon/dynamodb-local",
-    "docker_go":   "docker run --rm --name lambda_go -p 2026:8080 -v ~/apps/fds/.dist:/var/task --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --env AWS_REGION=$AWS_REGION  --env AWS_ENDPOINT_URL_DYNAMODB=http://172.17.0.2:8000 --env FDS_APPS_USERS_TABLE=fds.apps.users amazon/aws-lambda-go bootstrap"
+    "docker_go":   "docker run --rm --name lambda_go -p 2026:8080 -v ~/apps/fds/.dist:/var/task --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --env AWS_REGION=$AWS_REGION  --env AWS_ENDPOINT_URL_DYNAMODB=http://172.17.0.2:8000 --env FDS_APPS_USERS_TABLE=$FDS_APPS_USERS_TABLE amazon/aws-lambda-go bootstrap"
   },
   "repository": {
     "type": "git",
