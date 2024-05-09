@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/google/martian/log"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -145,6 +146,8 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 
 	required := map[string]string{"username": "string", "fullname": "string"}
 	if err := parametersExists(request.Parameters, required); err != nil {
+		log.Error(err)
+		
 		return nil, err
 	}
 
@@ -169,17 +172,24 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 	}
 }
 func getUser(ctx context.Context, request *Request) (*Response, error) {
-	logger.Info("lambda function: dynamodb get user")
+	logger.Info("lambda function: dynamodb  scan get user")
 
 	client := newDynamodbClient()
-	params := dynamodb.ScanInput{
+	params := dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
+		Key:
 	}
+
+	if output, err: = client.GetItem(ctx, &params); err != nil {
+		logger.Error(err)
+		return nil, fmt.Errorf("could not access this user data")
+	}
+
 	return nil, fmt.Errorf("not available")
 }
 
 func getUsers(ctx context.Context, request *Request) (*Response, error) {
-	logger.Info("lambda function: dynamodb get users")
+	logger.Info("lambda function: dynamodb scan get users")
 
 	client := newDynamodbClient()
 	params := dynamodb.ScanInput{
