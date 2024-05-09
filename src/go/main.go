@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"maps"
 	"os"
 	"time"
 
@@ -12,8 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-
+	
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
 
@@ -131,8 +129,7 @@ func newDynamodbClient() (*dynamodb.Client) {
 
 func putUser(ctx context.Context, request *Request)(*Response, error) {
 	logger.Info("lambda function: dynamodb scan users")
-	logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
-
+	
 	required := map[string]string{"username":"string", "fullname":"string"}
 	for k := range required {
 		if found := request.Parameters[k]; found == nil {
@@ -163,8 +160,7 @@ func putUser(ctx context.Context, request *Request)(*Response, error) {
 
 func getUsers(ctx context.Context, request *Request)(*Response, error) {
 	logger.Info("lambda function: dynamodb scan users")
-	logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
-
+	
 	client := newDynamodbClient()
 	params := dynamodb.ScanInput{
 		TableName: aws.String(tableName),
@@ -188,6 +184,9 @@ func main() {
 
 	// AWS SDK lambda function handler
 	lambda.Start(func (ctx context.Context, request *Request)(*Response, error) {
+		logger.Info("FDS lambda.Start")
+		logger.Debug(fmt.Sprintf("\t%s", request.Parameters))
+
 		requestKey := fmt.Sprintf("%s %s", request.HttpMethod, request.Resource)
 
 		switch requestKey {
