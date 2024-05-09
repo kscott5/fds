@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/google/uuid"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -128,14 +129,23 @@ func newDynamodbClient() *dynamodb.Client {
 	})
 }
 
+func parametersExists(parameters map[string]interface{}, requires map[string]string) (error) {
+	logger.Debug(fmt.Sprint("parametersExists", parameters, " requires:", requires))
+
+	for k := range requires {
+		if found := parameters[k]; found == nil {
+			return fmt.Errorf("requires request parameters: %s", requires)
+		}
+	}
+	return nil
+}
+
 func putUser(ctx context.Context, request *Request) (*Response, error) {
 	logger.Info("lambda function: dynamodb scan users")
 
 	required := map[string]string{"username": "string", "fullname": "string"}
-	for k := range required {
-		if found := request.Parameters[k]; found == nil {
-			return nil, fmt.Errorf("required request parameters: %s", required)
-		}
+	if err := parametersExists(request.Parameters, required); err != nil {
+		return nil, err
 	}
 
 	attrs := request.Parameters
@@ -158,9 +168,18 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 		}
 	}
 }
+func getUser(ctx context.Context, request *Request) (*Response, error) {
+	logger.Info("lambda function: dynamodb get user")
+
+	client := newDynamodbClient()
+	params := dynamodb.ScanInput{
+		TableName: aws.String(tableName),
+	}
+	return nil, fmt.Errorf("not available")
+}
 
 func getUsers(ctx context.Context, request *Request) (*Response, error) {
-	logger.Info("lambda function: dynamodb scan users")
+	logger.Info("lambda function: dynamodb get users")
 
 	client := newDynamodbClient()
 	params := dynamodb.ScanInput{
