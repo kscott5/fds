@@ -18,11 +18,23 @@ import (
 	"go.uber.org/zap"
 )
 
+type Identifier interface {
+	Id() (string, error)
+}
+
 type Request struct {
 	HttpMethod string                 		`json:"httpMethod"`
 	Resource   string                 		`json:"resource"`
 	Parameters map[string]interface{} 		`json:"parameters,omitempty"`
 	PathParameters map[string]interface{} 	`json:"pathParameters,omitempty"`
+}
+
+func (req Request) Id() (string, error) {
+	if req.HttpMethod != "" && req.Resource != "" {
+		return fmt.Sprintf("%s %s", req.HttpMethod, req.Resource), nil
+	}
+
+	return "", fmt.Errorf("requires http method and resouce path")
 }
 
 type Response struct {
@@ -196,9 +208,7 @@ func main() {
 		logger.Info("FDS lambda.Start")
 		logger.Debug(fmt.Sprintf("request %s", request))
 
-		requestKey := fmt.Sprintf("%s %s", request.HttpMethod, request.Resource)
-
-		switch requestKey {
+		switch id, _ := request.Id(); id {
 		case "GET /users":
 			return getUsers(ctx, request)
 		case "GET /users/{_id}":
@@ -206,7 +216,7 @@ func main() {
 		case "PUT /user":
 			return putUser(ctx, request)
 		default:
-			return nil, fmt.Errorf("invalid request: %s", requestKey)
+			return nil, fmt.Errorf("(%s) not valid. valid request requires httpmethod and resource", id)
 		}
 	})
 }
