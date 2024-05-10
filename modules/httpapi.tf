@@ -23,6 +23,38 @@ resource "aws_api_gateway_rest_api" "getusers" {
             httpMethod          = "POST"
             type                = "aws_proxy"
             passthroughBehavior = "WHEN_NO_MATCH"
+            uri                 = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getusers_go.arn}/invocations"
+          }
+        }
+      },
+
+      "/users/{_id}" = {
+        get = {
+          security = [
+            {
+              "lambdaTokenAuthorizer" : []
+            }
+          ]
+          x-amazon-apigateway-integration = {
+            httpMethod          = "POST"
+            type                = "aws_proxy"
+            passthroughBehavior = "WHEN_NO_MATCH"
+            uri                 = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getuser_go.arn}/invocations"
+          }
+        }
+      },
+
+      "/user" = {
+        put = {
+          security = [
+            {
+              "lambdaTokenAuthorizer" : []
+            }
+          ]
+          x-amazon-apigateway-integration = {
+            httpMethod          = "POST"
+            type                = "aws_proxy"
+            passthroughBehavior = "WHEN_NO_MATCH"
             uri                 = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getusers.arn}/invocations"
           }
         }

@@ -12,7 +12,7 @@ resource "aws_dynamodb_table" "users_table" {
     name = "_id"
     type = "S"
   }
-  
+
 }
 
 output "users_table" {
