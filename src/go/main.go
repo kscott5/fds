@@ -127,7 +127,7 @@ func getUser(ctx context.Context, request *Request) (*Response, error) {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attrs := request.Parameters
+	attrs := request.PathParameters
 	key, _ := attributevalue.MarshalMap(attrs)
 
 	client := newDynamodbClient()
