@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 resource "aws_cognito_user_pool" "user_pool" {
-  name = "${var.workshop_stack_base_name}UserPool"
+  name = "${var.app_prefix}UserPool"
   admin_create_user_config {
     allow_admin_create_user_only = false
   }
@@ -31,7 +31,7 @@ resource "aws_cognito_user_pool" "user_pool" {
 }
 
 resource "aws_cognito_user_pool_client" "user_pool_client" {
-  name = "${var.workshop_stack_base_name}UserPoolClient"
+  name = "${var.app_prefix}UserPoolClient"
   explicit_auth_flows = [
     "ALLOW_USER_PASSWORD_AUTH",
     "ALLOW_USER_SRP_AUTH",

@@ -10,7 +10,7 @@ variable "region" {
 variable "arn_aws_lambda_base" {
   default = "arn:aws:lambda"
 }
-variable "workshop_stack_base_name" {
+variable "app_prefix" {
   default = "FDSApps"
 }
 variable "lambda_memory" {

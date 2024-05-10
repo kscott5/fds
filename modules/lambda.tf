@@ -3,13 +3,13 @@
 
 data "archive_file" "getusers_lambda_zip" {
   type        = "zip"
-  output_path = "../.dist/${var.workshop_stack_base_name}.lambda.pi.zip"
+  output_path = "../dist/${var.app_prefix}.lambda.pi.zip"
   source_dir  = "../src/pi"
 }
 
 resource "aws_lambda_function" "getusers" {
   filename         = data.archive_file.getusers_lambda_zip.output_path
-  function_name    = "${var.workshop_stack_base_name}GetUsers"
+  function_name    = "${var.app_prefix}GetUsersPi"
   role             = aws_iam_role.lambda_role.arn
   handler          = "userservice.lambda_handler"
   source_code_hash = data.archive_file.getusers_lambda_zip.output_base64sha256

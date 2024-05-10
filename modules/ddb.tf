@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 resource "aws_dynamodb_table" "users_table" {
-  name         = "${var.workshop_stack_base_name}Users"
+  name         = "${var.app_prefix}Users"
   billing_mode = "PROVISIONED"
   hash_key     = "_id"
 
@@ -12,6 +12,7 @@ resource "aws_dynamodb_table" "users_table" {
     name = "_id"
     type = "S"
   }
+  
 }
 
 output "users_table" {

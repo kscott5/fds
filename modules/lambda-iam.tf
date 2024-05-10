@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 resource "aws_iam_role" "lambda_role" {
-  name               = "${var.workshop_stack_base_name}LambdaRole"
+  name               = "${var.app_prefix}LambdaRole"
   description        = "FDS Lambda function IAM role"
   assume_role_policy = <<EOF
 {
@@ -21,7 +21,7 @@ EOF
 }
 
 resource "aws_iam_policy" "lambda_role_policy" {
-  name        = "${var.workshop_stack_base_name}LambdaRolePolicy"
+  name        = "${var.app_prefix}LambdaRolePolicy"
   description = "FDS Lambda function policy"
 
   policy = <<EOF
@@ -64,7 +64,7 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "lambda_attach" {
-  name       = "${var.workshop_stack_base_name}LambdaPolicyAttachment"
+  name       = "${var.app_prefix}LambdaPolicyAttachment"
   roles      = [aws_iam_role.lambda_role.name]
   policy_arn = aws_iam_policy.lambda_role_policy.arn
 }

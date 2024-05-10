@@ -1,7 +1,7 @@
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api
 # https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-integration-async.html
 resource "aws_api_gateway_rest_api" "getusers" {
-  name = "${var.workshop_stack_base_name}GetUsers"
+  name = "${var.app_prefix}GetUsers"
   endpoint_configuration {
     types = ["REGIONAL"]
   }
@@ -51,7 +51,7 @@ resource "aws_api_gateway_stage" "getusers" {
   xray_tracing_enabled = true
 }
 resource "aws_lambda_permission" "api_getusers" {
-  statement_id  = "${var.workshop_stack_base_name}LambdaPermission"
+  statement_id  = "${var.app_prefix}LambdaPermission"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.getusers.function_name
   principal     = "apigateway.${var.region}.amazonaws.com"
