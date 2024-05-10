@@ -141,7 +141,13 @@ func getUser(ctx context.Context, request *Request) (*Response, error) {
 		return nil, fmt.Errorf("could not access this user data")
 	} else {
 		
-		var data interface{}
+		var data map[string]struct{
+			_id string
+			FullName string
+			UserName string
+		}
+
+		// NOTE: Expectation different 
 		attributevalue.UnmarshalMap(output.Item, data)
 
 		response := Response{
