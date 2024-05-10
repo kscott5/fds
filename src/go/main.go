@@ -85,7 +85,7 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 	if err := parametersExists(request.Parameters, requires); err != nil {
 		logger.Error(fmt.Sprint(err))
 		
-		return nil, fmt.Errorf("requires: ", requires)
+		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
 	attrs := request.Parameters
@@ -93,7 +93,7 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 
 	if input, err := attributevalue.MarshalMap(attrs); err != nil {
 		logger.Error(fmt.Sprint(err))
-		return nil, fmt.Errorf("json format and mappers requires: ", requires)
+		return nil, fmt.Errorf("json format and mappers requires: %s", requires)
 	} else {
 		client := newDynamodbClient()
 		params := dynamodb.PutItemInput{
@@ -118,12 +118,13 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 
 func getUser(ctx context.Context, request *Request) (*Response, error) {
 	logger.Info("lambda function: dynamodb get item user")
-	
+	logger.Debug(fmt.Sprint(request.PathParameters))
+
 	requires := map[string]string{"_id": "string"}
-	if err := parametersExists(request.Parameters, requires); err != nil {
+	if err := parametersExists(request.PathParameters, requires); err != nil {
 		logger.Error(fmt.Sprint(err))
 		
-		return nil, fmt.Errorf("requires: ", requires)
+		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
 	attrs := request.Parameters
@@ -155,7 +156,8 @@ func getUser(ctx context.Context, request *Request) (*Response, error) {
 
 func getUsers(ctx context.Context, request *Request) (*Response, error) {
 	logger.Info("lambda function: dynamodb scan get users")
-
+	logger.Warn(fmt.Sprintf("filter expression or parameters not in use with this request: %s", request))
+	
 	client := newDynamodbClient()
 	params := dynamodb.ScanInput{
 		TableName: aws.String(tableName),
@@ -186,15 +188,15 @@ func main() {
 	// AWS SDK lambda function handler
 	lambda.Start(func(ctx context.Context, request *Request) (*Response, error) {
 		logger.Info("FDS lambda.Start")
+		logger.Debug(fmt.Sprintf("request %s", request))
 
 		requestKey := fmt.Sprintf("%s %s", request.HttpMethod, request.Resource)
-		logger.Debug(requestKey)
 
 		switch requestKey {
-		case "GET /users/{user}":
-			return getUser(ctx, request)
 		case "GET /users":
 			return getUsers(ctx, request)
+		case "GET /users/{_id}":
+			return getUser(ctx, request)
 		case "PUT /user":
 			return putUser(ctx, request)
 		default:
