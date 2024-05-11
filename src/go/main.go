@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -11,36 +12,21 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	
+
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
 
 	"go.uber.org/zap"
 )
 
-type Identifier interface {
-	Id() (string, error)
-}
 
-type Request struct {
-	HttpMethod string                 		`json:"httpMethod"`
-	Resource   string                 		`json:"resource"`
-	Parameters map[string]interface{} 		`json:"parameters,omitempty"`
-	PathParameters map[string]interface{} 	`json:"pathParameters,omitempty"`
-}
-
-func (req Request) Id() (string, error) {
-	if req.HttpMethod != "" && req.Resource != "" {
-		return fmt.Sprintf("%s %s", req.HttpMethod, req.Resource), nil
+func requestKey(httpMethod, resource string) (string, error) {
+	if httpMethod != "" && resource != "" {
+		return fmt.Sprintf("%s %s", httpMethod, resource), nil
 	}
 
 	return "", fmt.Errorf("requires http method and resouce path")
-}
-
-type Response struct {
-	StatusCode int               `json:"statusCode"`
-	Headers    map[string]string `json:"headers"`
-	Data       interface{}       `json:"data"`
 }
 
 // Local Credentials implements CredentialsProvider.Retrieve method
@@ -60,9 +46,9 @@ func (local LocalCredentials) Retrieve(ctx context.Context) (aws.Credentials, er
 var (
 	logger    *zap.Logger
 	tableName string
-	
 	headers map[string]string = map[string]string{
-		"header": "application/jsom",
+		"content-type": "application/json",
+		"access-control-allow-orgin": "*",
 	}
 )
 
@@ -79,33 +65,32 @@ func newDynamodbClient() *dynamodb.Client {
 	})
 }
 
-func parametersExists(parameters map[string]interface{}, requires map[string]string) (error) {
+func parametersExists(parameters map[string]string, requires map[string]string) (error) {
 	logger.Debug(fmt.Sprint("parametersExists", parameters, " requires:", requires))
 
 	for k := range requires {
-		if found := parameters[k]; found == nil {
+		if found := parameters[k]; found == "" {
 			return fmt.Errorf("requires request parameters: %s", requires)
 		}
 	}
 	return nil
 }
 
-func putUser(ctx context.Context, request *Request) (*Response, error) {
+func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger.Info("lambda function: dynamodb scan users")
 
 	requires := map[string]string{"username": "string", "fullname": "string"}
-	if err := parametersExists(request.Parameters, requires); err != nil {
+	if err := parametersExists(request.PathParameters, requires); err != nil {
 		logger.Error(fmt.Sprint(err))
 		
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attrs := request.Parameters
+	attrs := request.PathParameters
 	attrs["_id"] = uuid.New().String()
 
 	if input, err := attributevalue.MarshalMap(attrs); err != nil {
-		logger.Error(fmt.Sprint(err))
-		return nil, fmt.Errorf("json format and mappers requires: %s", requires)
+		return nil, err
 	} else {
 		client := newDynamodbClient()
 		params := dynamodb.PutItemInput{
@@ -114,21 +99,21 @@ func putUser(ctx context.Context, request *Request) (*Response, error) {
 		}
 
 		if _, err := client.PutItem(ctx, &params); err != nil {
-			logger.Error(fmt.Sprint(err))
 			return nil, err
 		} else {
-			response := Response{
+			response := events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Headers: headers,
-				Data: map[string]string{"_id": attrs["_id"].(string)},
+				Body: fmt.Sprintf("{\"_id\": \"%s\"}", attrs["_id"]),
 			}
-	
+
 			return &response, nil
 		}
 	}
+
 }
 
-func getUser(ctx context.Context, request *Request) (*Response, error) {
+func getUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger.Info("lambda function: dynamodb get item user")
 	logger.Debug(fmt.Sprint(request.PathParameters))
 
@@ -148,25 +133,26 @@ func getUser(ctx context.Context, request *Request) (*Response, error) {
 		Key: key,
 	}
 
+	out := map[string]interface{}{}
 	if output, err := client.GetItem(ctx, &params); err != nil {
-		logger.Error(fmt.Sprint(err))
-		return nil, fmt.Errorf("could not access this user data")
+		return nil, err
+	} else if err := attributevalue.UnmarshalMap(output.Item, &out); err != nil {
+		return nil, err
+	} else if body, err :=json.Marshal(out); err != nil {		
+		return nil, err
 	} else {
-		
-		data := map[string]interface{}{}
-		attributevalue.UnmarshalMap(output.Item, &data)
-
-		response := Response{
+		response := events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: headers,
-			Data: data,
+			Body: string(body),
+			IsBase64Encoded: true,
 		}
 
 		return &response, nil
 	}
 }
 
-func getUsers(ctx context.Context, request *Request) (*Response, error) {
+func getUsers(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger.Info("lambda function: dynamodb scan get users")
 	logger.Warn(fmt.Sprintf("filter expression or parameters not in use with this request: %s", request))
 	
@@ -180,11 +166,14 @@ func getUsers(ctx context.Context, request *Request) (*Response, error) {
 		return nil, err
 	} else if err := attributevalue.UnmarshalListOfMaps(output.Items, &out); err != nil {
 		return nil, err
+	} else if body, err := json.Marshal(out); err != nil {
+		return nil, err
 	} else {
-		response := Response{
+		response := events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: headers,
-			Data: out,
+			Body:  string(body),
+			IsBase64Encoded: true,
 		}
 
 		return &response, nil
@@ -198,11 +187,10 @@ func main() {
 	logger.Info("FDS main")
 
 	// AWS SDK lambda function handler
-	lambda.Start(func(ctx context.Context, request *Request) (*Response, error) {
+	lambdaHandler := lambda.NewHandler(func(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 		logger.Info("FDS lambda.Start")
-		logger.Debug(fmt.Sprintf("request %s", request))
-
-		switch id, _ := request.Id(); id {
+		
+		switch id, _ := requestKey(request.HTTPMethod, request.Resource); id {
 		case "GET /users":
 			return getUsers(ctx, request)
 		case "GET /users/{_id}":
@@ -213,4 +201,6 @@ func main() {
 			return nil, fmt.Errorf("(%s) not valid. valid request requires httpmethod and resource", id)
 		}
 	})
+
+	lambda.Start(lambdaHandler)
 }
