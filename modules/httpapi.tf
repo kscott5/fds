@@ -82,10 +82,24 @@ resource "aws_api_gateway_stage" "getusers" {
   deployment_id        = aws_api_gateway_deployment.getusers.id
   xray_tracing_enabled = true
 }
-resource "aws_lambda_permission" "api_getusers" {
+resource "aws_lambda_permission" "api_getusers_go" {
   statement_id  = "${var.app_prefix}LambdaPermission"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.getusers.function_name
+  function_name = aws_lambda_function.getusers_go.function_name
+  principal     = "apigateway.${var.region}.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.getusers.execution_arn}/*/*/*"
+}
+resource "aws_lambda_permission" "api_getuser_go" {
+  statement_id  = "${var.app_prefix}LambdaPermission"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.getuser_go.function_name
+  principal     = "apigateway.${var.region}.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.getusers.execution_arn}/*/*/*"
+}
+resource "aws_lambda_permission" "api_putuser_go" {
+  statement_id  = "${var.app_prefix}LambdaPermission"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.putuser_go.function_name
   principal     = "apigateway.${var.region}.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.getusers.execution_arn}/*/*/*"
 }
