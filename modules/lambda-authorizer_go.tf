@@ -4,7 +4,7 @@
 data "archive_file" "userfunctions_lambda_auth_zip" {
   type        = "zip"
   output_path = "../dist/${var.app_prefix}.lambda.auth.go.zip"
-  source_file = "../dist/authb/bootstrap"
+  source_file = "../dist/auth/bootstrap"
 }
 
 resource "aws_lambda_function" "userfunctions_lambda_auth" {
