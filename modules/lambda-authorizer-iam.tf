@@ -48,9 +48,9 @@ resource "aws_iam_policy" "userfunctions_lambda_auth_role_policy" {
 EOF
 }
 
-resource "aws_iam_policy_attachment" "userfunctions_lambda_auth_attach" {
+resource "aws_iam_policy_attachment" "user_lambda_auth_attach" {
   name       = "${var.app_prefix}LambdaAuthAttachment"
-  roles      = ["${aws_iam_role.userfunctions_lambda_auth_role.name}"]
-  policy_arn = aws_iam_policy.userfunctions_lambda_auth_role_policy.arn
+  roles      = ["${aws_iam_role.user_lambda_auth_role.name}"]
+  policy_arn = aws_iam_policy.user_lambda_auth_role_policy.arn
 }
 
