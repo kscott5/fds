@@ -14,14 +14,14 @@ resource "aws_api_gateway_rest_api" "getusers" {
     components = {
       securitySchemes = {
         lambdaTokenAuthorizer = {
-          type = "apiKey"
-          name = "Authorization"
-          in = "header"
+          type                         = "apiKey"
+          name                         = "Authorization"
+          in                           = "header"
           x-amazon-apigateway-authtype = "custom"
           x-amazon-apigateway-authorizer = {
-            authorizerUri = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${aws_lambda_function.userfunctions_lambda_auth.function_name}/invocations"
+            authorizerUri                = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${aws_lambda_function.userfunctions_lambda_auth.function_name}/invocations"
             authorizerResultTtlInSeconds = 300
-            type = "token"
+            type                         = "token"
           }
         }
       }

@@ -2,11 +2,14 @@ package authorizer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -21,9 +24,9 @@ const (
 )
 
 var (
-	userPoolId     = os.Getenv("USER_POOL_ID")
-	appClientId    = os.Getenv("APPLICATION_CLIENT_ID")
-	adminGroupName = os.Getenv("ADMIN_GROUP_NAME")
+	UserPoolId     = os.Getenv("FDS_USER_POOL_ID")
+	AppClientId    = os.Getenv("FDS_APPLICATION_CLIENT_ID")
+	AdminGroupName = os.Getenv("FDS_ADMIN_GROUP_NAME")
 
 	HttpVerb = map[string]string{
 		"GET":     "GET",
@@ -155,14 +158,54 @@ func (pr *LocalAuthorizerResponse) Build(principalId string) error {
 	return nil
 }
 
-func validateToken(region, token string) (map[string]interface{}, error) {
+func GetWellKnownJwksKeys(region, authToken, userPoolId string)(map[string]interface{}, error) {
 	// KEYS URL -- REPLACE WHEN CHANGING IDENTITY PROVIDER
 	keysUrl := fmt.Sprintf("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, userPoolId)
 
 	if res, err := http.Get(keysUrl); err != nil {
-		return "", err
+		return nil, err
 	} else {
-		return fmt.Sprintln(res), nil
+		size := res.ContentLength
+		body := make([]byte, size)
+		
+		if size, err := res.Body.Read(body); err != nil {
+			return nil, err
+		} else if int64(size) == res.ContentLength {
+			keys := make(map[string]interface{}, 1)
+			json.Unmarshal(body, &keys)
+
+			return keys, nil
+		} else {
+			return nil, err
+		}
+	}
+}
+
+func validateAuthToken(region, authToken string) (map[string]interface{}, error) {
+	if keys, err := GetWellKnownJwksKeys(region, authToken, UserPoolId); err != nil {
+		return nil, err
+	} else {
+
+		fmt.Println(keys)
+
+		rs256 := jwt.NewParser(jwt.WithValidMethods([]string{"RS256"}))
+	
+		_, err := rs256.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
+			// Don't forget to validate the alg is what you expect:
+			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+		
+			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+			return nil, fmt.Errorf("%v", token)
+		})
+
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+			
+		return nil, fmt.Errorf("not available")
 	}
 }
 
@@ -175,13 +218,13 @@ func main() {
 			return &LocalAuthorizerResponse{}, fmt.Errorf("request method arn not available")
 		}
 
-		if token, err := validateToken(request.AuthorizationToken, methodArn[2]); err != nil {
+		if token, err := validateAuthToken(methodArn[2], request.AuthorizationToken); err != nil {
 			return &LocalAuthorizerResponse{}, err
 		} else {
 			apiGatewayArn := strings.Split(methodArn[5], "/")
 			response := LocalAuthorizerResponse{
 				// Save the ARN parts
-				PrincipalID: token["sub"],
+				//PrincipalID: token["sub"],
 				AccountId: methodArn[4],
 				Region:    methodArn[3],
 				Route:     methodArn[2],
@@ -207,20 +250,20 @@ func main() {
 			
 			// Look for admin group in Cognito groups
 			// Assumption: admin group always has higher precedence
-			if found := token["cognito:groups"]; found && token["cognito:groups"][0] == adminGroupName {
-				// add administrative privileges
-				policy.allowMethod(HttpVerb["GET"], "users")
-				policy.allowMethod(HttpVerb["GET"], "users/*")
+			// if found := token["cognito:groups"]; found && token["cognito:groups"][0] == adminGroupName {
+			// 	// add administrative privileges
+			// 	response.AllowMethod(HttpVerb["GET"], "users")
+			// 	response.AllowMethod(HttpVerb["GET"], "users/*")
 			
 
-				policy.allowMethod(HttpVerb["DELETE"], "users")
-				policy.allowMethod(HttpVerb["DELETE"], "users/*")
-				policy.allowMethod(HttpVerb["PUT"], "users")
-				policy.allowMethod(HttpVerb["PUT"], "users/*")
-			}
+			// 	response.AllowMethod(HttpVerb["DELETE"], "users")
+			// 	response.AllowMethod(HttpVerb["DELETE"], "users/*")
+			// 	response.AllowMethod(HttpVerb["PUT"], "users")
+			// 	response.AllowMethod(HttpVerb["PUT"], "users/*")
+			// }
 
-			response.Build()
-			return &response, fmt.Errorf("not available")
+			//response.Build()
+			return &response, fmt.Errorf("not available: token-> %s", token)
 		}
 	})
 
