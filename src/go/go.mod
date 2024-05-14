@@ -1,4 +1,4 @@
- module github.com/kscott5/fds
+module github.com/kscott5/fds
 
 go 1.22.1
 
