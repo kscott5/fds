@@ -18,9 +18,9 @@ resource "aws_lambda_function" "userfunctions_lambda_auth" {
   timeout = var.lambda_timeout
   environment {
     variables = {
-      USER_POOL_ID = aws_cognito_user_pool.user_pool.id
-      APPLICATION_CLIENT_ID = aws_cognito_user_pool_client.user_pool_client.id
-      ADMIN_GROUP_NAME = var.user_pool_admin_group_name
+      FDS_USER_POOL_ID = aws_cognito_user_pool.user_pool.id
+      FDS_APPLICATION_CLIENT_ID = aws_cognito_user_pool_client.user_pool_client.id
+      FDS_ADMIN_GROUP_NAME = var.user_pool_admin_group_name
     }
   }
 }
