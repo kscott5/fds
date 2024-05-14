@@ -3,7 +3,7 @@
 
 data "archive_file" "user_lambda_auth_zip" {
   type        = "zip"
-  output_path = "../dist/${var.app_prefix}.lambda.auth.go.zip"
+  output_path = "../dist/auth/${var.app_prefix}.lambda.auth.go.zip"
   source_file = "../dist/auth/bootstrap"
 }
 
@@ -14,7 +14,7 @@ resource "aws_lambda_function" "user_lambda_auth" {
   handler          = "boostrap"
   source_code_hash = data.archive_file.user_lambda_auth_zip.output_base64sha256
   runtime          = var.lambda_runtime[1]
-  architectures = var.architectures
+  architectures    = var.architectures
   timeout          = var.lambda_timeout
   tracing_config {
     mode = var.lambda_tracing_config
