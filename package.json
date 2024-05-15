@@ -12,7 +12,9 @@
     "build": "npm run clean && npm run arm && npm run auth",
     "terraform": "terraform -chdir=./modules init && terraform -chdir=./modules fmt && terraform -chdir=./modules validate",
     "deploy": "npm run clean && npm run build && npm run terraform && terraform -chdir=./modules apply --auto-approve",
-    "output": "terraform -chdir=./modules output"
+    "output": "terraform -chdir=./modules output",
+    "scan": "aws dynamodb scan --table-name $FDS_APPS_USERS_TABLE --profile dev",
+    "data": "aws dynamodb batch-write-item --request-items file://data/data.json --profile dev"
   },
   "repository": {
     "type": "git",
