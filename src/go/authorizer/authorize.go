@@ -1,4 +1,4 @@
-package authorizer
+package main
 
 import (
 	"context"
@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambdacontext" // IMPORTANT: package level init() in use.
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -27,7 +29,8 @@ var (
 	UserPoolId     = os.Getenv("FDS_USER_POOL_ID")
 	AppClientId    = os.Getenv("FDS_APPLICATION_CLIENT_ID")
 	AdminGroupName = os.Getenv("FDS_ADMIN_GROUP_NAME")
-
+	
+	logger    *zap.Logger
 	HttpVerb = map[string]string{
 		"GET":     "GET",
 		"POST":    "POST",
@@ -158,7 +161,9 @@ func (pr *LocalAuthorizerResponse) Build(principalId string) error {
 	return nil
 }
 
-func GetWellKnownJwksKeys(region, authToken, userPoolId string)(map[string]interface{}, error) {
+func GetWellKnownJwksKeys(region, userPoolId string)(map[string]interface{}, error) {
+	logger.Info("GetWellKnowJwksKeys")
+
 	// KEYS URL -- REPLACE WHEN CHANGING IDENTITY PROVIDER
 	keysUrl := fmt.Sprintf("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, userPoolId)
 
@@ -181,12 +186,13 @@ func GetWellKnownJwksKeys(region, authToken, userPoolId string)(map[string]inter
 	}
 }
 
-func validateAuthToken(region, authToken string) (map[string]interface{}, error) {
-	if keys, err := GetWellKnownJwksKeys(region, authToken, UserPoolId); err != nil {
+func ValidateAuthToken(region, authToken string) (map[string]interface{}, error) {
+	logger.Debug("validateAuthToken")
+	logger.Debug(fmt.Sprintf("validateAuthToken: %s %s", region, authToken))
+
+	if keys, err := GetWellKnownJwksKeys(region, UserPoolId); err != nil {
 		return nil, err
 	} else {
-
-		fmt.Println(keys)
 
 		rs256 := jwt.NewParser(jwt.WithValidMethods([]string{"RS256"}))
 	
@@ -195,9 +201,16 @@ func validateAuthToken(region, authToken string) (map[string]interface{}, error)
 			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-		
-			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-			return nil, fmt.Errorf("%v", token)
+
+			header := token.Header
+			for _, v := range keys {
+				key := v.(map[string]string)
+				if key["kid"] == header["kid"] {
+					fmt.Println(header)
+				}
+
+			}
+			return token, fmt.Errorf("%v", token)
 		})
 
 		if err != nil {
@@ -210,15 +223,22 @@ func validateAuthToken(region, authToken string) (map[string]interface{}, error)
 }
 
 func main() {
-	lambdaHandler := lambda.NewHandler(func(ctx context.Context, request *events.APIGatewayCustomAuthorizerRequest) (*LocalAuthorizerResponse, error) {
-		// Parse the input for the parameter values
-		methodArn := strings.Split(request.MethodArn, ":")
+	logger, _ := zap.NewDevelopment()
+	logger.Info("FDS main authorizer")
 
+	lambdaHandler := lambda.NewHandler(func(ctx context.Context, request *events.APIGatewayCustomAuthorizerRequest) (*LocalAuthorizerResponse, error) {
+		logger.Info("FDS lambda.Start authorizer")
+
+		// Parse the input for the parameter values
+		// methodArn := []string{"arn", "aws", "execute-api", "{region}", "{accountid}" "{apiid}/{stage}/GET/request"}
+		methodArn := strings.Split(request.MethodArn, ":")
+		logger.Debug(fmt.Sprint(methodArn))
+		
 		if len(methodArn) < 6 {
 			return &LocalAuthorizerResponse{}, fmt.Errorf("request method arn not available")
 		}
 
-		if token, err := validateAuthToken(methodArn[2], request.AuthorizationToken); err != nil {
+		if token, err := ValidateAuthToken(methodArn[3], request.AuthorizationToken); err != nil {
 			return &LocalAuthorizerResponse{}, err
 		} else {
 			apiGatewayArn := strings.Split(methodArn[5], "/")
@@ -229,7 +249,7 @@ func main() {
 				Region:    methodArn[3],
 				Route:     methodArn[2],
 				Stage:     apiGatewayArn[1],
-				ApiId:     methodArn[0],
+				ApiId:     apiGatewayArn[0],
 			}
 
 			// *** Section 2 : authorization rules
