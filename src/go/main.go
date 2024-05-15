@@ -65,6 +65,13 @@ func newDynamodbClient() *dynamodb.Client {
 	})
 }
 
+func parseJSONRequestBody(data string) (*map[string]string, error) {
+	mapper := make(map[string]string)
+	err := json.Unmarshal([]byte(data), &mapper)
+
+	return &mapper, err
+}
+
 func parametersExists(parameters map[string]string, requires map[string]string) (error) {
 	logger.Debug(fmt.Sprint("parametersExists", parameters, " requires:", requires))
 
@@ -77,16 +84,17 @@ func parametersExists(parameters map[string]string, requires map[string]string) 
 }
 
 func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	logger.Info("lambda function: dynamodb scan users")
+	logger.Info("lambda function: dynamodb put user")
 
+	params, _ := parseJSONRequestBody(request.Body)
 	requires := map[string]string{"username": "string", "fullname": "string"}
-	if err := parametersExists(request.PathParameters, requires); err != nil {
+	if err := parametersExists(*params, requires); err != nil {
 		logger.Error(fmt.Sprint(err))
 		
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attrs := request.PathParameters
+	attrs := *params
 	attrs["_id"] = uuid.New().String()
 
 	if input, err := attributevalue.MarshalMap(attrs); err != nil {
