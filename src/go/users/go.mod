@@ -23,6 +23,4 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 )
 
-replace github.com/kscott5/fds v0.0.0 => ../go
-
-replace github.com/kscott5/fds/internal/client => ./internal
+replace github.com/kscott5/fds/internal/client => ../internal
