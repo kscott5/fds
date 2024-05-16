@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -29,9 +30,6 @@ func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*event
 		tableName = "FDSAppsOrders"
 	}
 
-	// cmapper := request.RequestContext.Authorizer["claims"]
-	// claims := cmapper.(map[string]string)
-	
 	params, _ := client.ParseJSONRequestBody(request.Body)
 	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
 	if err := client.ParametersExists(*params, requires); err != nil {
@@ -40,10 +38,22 @@ func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*event
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attrs := *params
-	attrs["_id"] = uuid.New().String()
-	//attrs["userid"] = claims["sub"]
-	attrs["creation"] = time.Now().String()
+	// cmapper := request.RequestContext.Authorizer["claims"]
+	// claims := cmapper.(map[string]string)	
+	//userid := claims["sub"]
+	orderid := uuid.New().String()
+
+	data := *params
+	data["orderid"] = orderid
+	//data["userid"] = claims["sub"]
+	data["status"] = "PLACED"
+	data["creation"] = time.Now().String()
+
+	attrs := map[string]interface{}{
+		"_id": orderid,
+		"userid": "userid",
+		"data": data,
+	}
 
 	if input, err := attributevalue.MarshalMap(attrs); err != nil {
 		return nil, err
@@ -66,5 +76,4 @@ func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*event
 			return &response, nil
 		}
 	}
-
 }
