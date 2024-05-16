@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-resource "aws_iam_role" "user_lambda_auth_role" {
+resource "aws_iam_role" "users_authorizer_role" {
   name               = "${var.app_prefix}LambdaAuthRole"
   description        = "Lambda function authorizer IAM role"
   assume_role_policy = <<EOF
@@ -21,7 +21,7 @@ resource "aws_iam_role" "user_lambda_auth_role" {
 EOF
 }
 
-resource "aws_iam_policy" "user_lambda_auth_role_policy" {
+resource "aws_iam_policy" "users_authorizer_role_policy" {
   name        = "${var.app_prefix}LambdaAuthRolePolicy"
   description = "Lambda function authorizer policy"
 
@@ -48,9 +48,9 @@ resource "aws_iam_policy" "user_lambda_auth_role_policy" {
 EOF
 }
 
-resource "aws_iam_policy_attachment" "user_lambda_auth_attach" {
+resource "aws_iam_policy_attachment" "users_authorizer_attach" {
   name       = "${var.app_prefix}LambdaAuthAttachment"
-  roles      = ["${aws_iam_role.user_lambda_auth_role.name}"]
-  policy_arn = aws_iam_policy.user_lambda_auth_role_policy.arn
+  roles      = ["${aws_iam_role.users_authorizer_role.name}"]
+  policy_arn = aws_iam_policy.users_authorizer_role_policy.arn
 }
 
