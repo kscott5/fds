@@ -21,8 +21,8 @@ import (
 
 var tableName string = os.Getenv("FDS_APPS_ORDERS_TABLE")
 
-func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	logger,_ := zap.NewDevelopment()
+func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	logger, _ := zap.NewDevelopment()
 	logger.Info("lambda function: dynamodb create new order")
 
 	if tableName == "" {
@@ -33,12 +33,12 @@ func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*event
 	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
 	if err := client.ParametersExists(*params, requires); err != nil {
 		logger.Error(fmt.Sprint(err))
-		
+
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
 	// cmapper := request.RequestContext.Authorizer["claims"]
-	// claims := cmapper.(map[string]string)	
+	// claims := cmapper.(map[string]string)
 	//userid := claims["sub"]
 	orderid := uuid.New().String()
 
@@ -49,9 +49,9 @@ func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*event
 	data["creation"] = time.Now().String()
 
 	attrs := map[string]interface{}{
-		"_id": orderid,
+		"_id":    orderid,
 		"userid": "userid",
-		"data": data,
+		"data":   data,
 	}
 
 	if input, err := attributevalue.MarshalMap(attrs); err != nil {
@@ -68,8 +68,8 @@ func Create(ctx context.Context, request *events.APIGatewayProxyRequest) (*event
 		} else {
 			response := events.APIGatewayProxyResponse{
 				StatusCode: 200,
-				Headers: client.HttpResponseHeaders,
-				Body: fmt.Sprintf("{\"orderid\": \"%s\"}", attrs["_id"]),
+				Headers:    client.HttpResponseHeaders,
+				Body:       fmt.Sprintf("{\"orderid\": \"%s\"}", attrs["_id"]),
 			}
 
 			return &response, nil
