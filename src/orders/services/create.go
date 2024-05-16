@@ -49,7 +49,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	data["creation"] = time.Now().String()
 
 	attrs := map[string]interface{}{
-		"_id":    orderid,
+		"orderid":    orderid,
 		"userid": "userid",
 		"data":   data,
 	}

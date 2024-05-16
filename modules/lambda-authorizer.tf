@@ -3,7 +3,7 @@
 
 data "archive_file" "users_authorizer_zip" {
   type        = "zip"
-  output_path = "../dist/auth/${var.app_prefix}.lambda.auth.go.zip"
+  output_path = "../dist/${var.app_prefix}.lambda.auth.go.zip"
   source_file = "../dist/auth/bootstrap"
 }
 

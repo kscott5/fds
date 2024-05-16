@@ -3,8 +3,8 @@
 
 data "archive_file" "getusers_lambda_zip" {
   type        = "zip"
-  output_path = "../dist/${var.app_prefix}.lambda.go.zip"
-  source_file = "../dist/bootstrap"
+  output_path = "../dist/${var.app_prefix}.lambda.users.zip"
+  source_file = "../dist/users/bootstrap"
 }
 
 resource "aws_lambda_function" "getusers" {
