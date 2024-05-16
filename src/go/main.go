@@ -203,7 +203,7 @@ func main() {
 			return getUsers(ctx, request)
 		case "GET /users/{_id}":
 			return getUser(ctx, request)
-		case "PUT /user":
+		case "PUT /users", "PUT /user":
 			return putUser(ctx, request)
 		default:
 			return nil, fmt.Errorf("(%s) not valid. valid request requires httpmethod and resource", id)
