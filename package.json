@@ -7,7 +7,7 @@
     "help": "node usage.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm  ./.dist -rf && rm ./dist -rf",
-    "arm": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/go -tags lambda.norpc -o ~/apps/fds/dist/bootstrap main.go",
+    "arm": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/go/users -tags lambda.norpc -o ~/apps/fds/dist/bootstrap main.go",
     "auth": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/go/authorizer -tags lambda.norpc -o ~/apps/fds/dist/auth/bootstrap authorize.go",
     "build": "npm run clean && npm run arm && npm run auth",
     "terraform": "terraform -chdir=./modules init && terraform -chdir=./modules fmt && terraform -chdir=./modules validate",
