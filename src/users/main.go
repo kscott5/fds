@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -30,20 +31,23 @@ func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 		tableName = "FDSAppsUsers"
 	}
 
-	params, _ := client.ParseJSONRequestBody(request.Body)
-	requires := map[string]string{"username": "string", "fullname": "string"}
-	if err := client.ParametersExists(*params, requires); err != nil {
-		logger.Error(fmt.Sprint(err))
+	user := struct {
+		UserName string `json:"username"`
+		Fullname string `json:"fullname"`
+	}{}
 
+	json.Unmarshal([]byte(request.Body), &user)
+	requires := map[string]string{"username": "string", "fullname": "string"}
+	if user.UserName == "" || user.Fullname == "" {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attrs := *params
-	attrs["_id"] = uuid.New().String()
-
-	if input, err := attributevalue.MarshalMap(attrs); err != nil {
+	_id := uuid.New().String()
+	attrId, _ := attributevalue.Marshal(_id)
+	if input, err := attributevalue.MarshalMap(user); err != nil {
 		return nil, err
 	} else {
+		input["_id"] = attrId
 		ddb := client.NewDynamodb(tableName)
 		params := dynamodb.PutItemInput{
 			TableName: aws.String(tableName),
@@ -56,13 +60,12 @@ func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 			response := events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Headers:    client.HttpResponseHeaders,
-				Body:       fmt.Sprintf("{\"_id\": \"%s\"}", attrs["_id"]),
+				Body:       fmt.Sprintf("{\"_id\": \"%s\"}", _id),
 			}
 
 			return &response, nil
 		}
 	}
-
 }
 
 func getUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
@@ -75,15 +78,17 @@ func getUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 		tableName = "FDSAppsUsers"
 	}
 
+	id := ""
+	json.Unmarshal([]byte(request.PathParameters["_id"]), &id)
 	requires := map[string]string{"_id": "string"}
-	if err := client.ParametersExists(request.PathParameters, requires); err != nil {
-		logger.Error(fmt.Sprint(err))
-
+	if id == "" {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attrs := request.PathParameters
-	key, _ := attributevalue.MarshalMap(attrs)
+	attr, _ := attributevalue.Marshal(id)
+	key := map[string]types.AttributeValue{
+		"_id": attr,
+	}
 
 	ddb := client.NewDynamodb(tableName)
 	params := dynamodb.GetItemInput{
@@ -113,7 +118,7 @@ func getUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 func getUsers(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger, _ := zap.NewDevelopment()
 	logger.Info("lambda function: dynamodb scan get users")
-	logger.Warn(fmt.Sprintf("filter expression or parameters not in use with this request: %s", request))
+	logger.Warn("filter expression or parameters not in use with this request")
 
 	if tableName == "" {
 		tableName = "FDSAppsUser"

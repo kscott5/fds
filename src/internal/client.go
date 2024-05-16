@@ -2,13 +2,11 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
@@ -45,20 +43,4 @@ func NewDynamodb(tableName string) *dynamodb.Client {
 		options.Region = os.Getenv("AWS_REGION")
 		options.Credentials = aws.NewCredentialsCache(LocalCredentials{})
 	})
-}
-
-func ParseJSONRequestBody(data string) (*map[string]string, error) {
-	mapper := make(map[string]string)
-	err := json.Unmarshal([]byte(data), &mapper)
-
-	return &mapper, err
-}
-
-func ParametersExists(parameters map[string]string, requires map[string]string) error {
-	for k := range requires {
-		if found := parameters[k]; found == "" {
-			return fmt.Errorf("requires request parameters: %s", requires)
-		}
-	}
-	return nil
 }
