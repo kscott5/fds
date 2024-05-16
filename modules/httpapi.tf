@@ -140,6 +140,6 @@ resource "aws_lambda_permission" "allow_api_on_authorizer" {
   principal     = "apigateway.${var.region}.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*/*"
 }
-output "aws_api_gateway_stage" {
+output "rest_api" {
   value = aws_api_gateway_stage.rest_api.invoke_url
 }
