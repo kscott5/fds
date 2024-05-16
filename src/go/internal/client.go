@@ -12,12 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
-var Headers map[string]string = map[string]string{
-		"content-type": "application/json",
-		"access-control-allow-orgin": "*",
-	}
+var HttpResponseHeaders map[string]string = map[string]string{
+	"content-type":               "application/json",
+	"access-control-allow-orgin": "*",
+}
 
-func RequestKey(httpMethod, resource string) (string, error) {
+func GetRequestKeyFrom(httpMethod, resource string) (string, error) {
 	if httpMethod != "" && resource != "" {
 		return fmt.Sprintf("%s %s", httpMethod, resource), nil
 	}
@@ -54,7 +54,7 @@ func ParseJSONRequestBody(data string) (*map[string]string, error) {
 	return &mapper, err
 }
 
-func ParametersExists(parameters map[string]string, requires map[string]string) (error) {
+func ParametersExists(parameters map[string]string, requires map[string]string) error {
 	for k := range requires {
 		if found := parameters[k]; found == "" {
 			return fmt.Errorf("requires request parameters: %s", requires)
@@ -62,4 +62,3 @@ func ParametersExists(parameters map[string]string, requires map[string]string) 
 	}
 	return nil
 }
-
