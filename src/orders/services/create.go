@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -29,32 +30,34 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 		tableName = "FDSAppsOrders"
 	}
 
-	params, _ := client.ParseJSONRequestBody(request.Body)
-	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
-	if err := client.ParametersExists(*params, requires); err != nil {
-		logger.Error(fmt.Sprint(err))
+	// anonymous structure
+	order := struct { 
+		RestaurantId string `json:"restaurantid"`
+		TotalAmount float64 `json:"totalamount"`
+		Items []string `json:"items"`
+		OrderId string
+		UserId string
+		Status string
+		PlacedOn string 
+	}{}
 
+	// extract and validate request body
+	json.Unmarshal([]byte(request.Body), &order)
+	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
+	if order.RestaurantId == "" || order.TotalAmount == 0 || len(order.Items) == 0 {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
+	// Cognitio user pool authentication and authorization
 	// cmapper := request.RequestContext.Authorizer["claims"]
 	// claims := cmapper.(map[string]string)
-	//userid := claims["sub"]
-	orderid := uuid.New().String()
+	// order.UserId = claims["sub"]
 
-	data := *params
-	data["orderid"] = orderid
-	//data["userid"] = claims["sub"]
-	data["status"] = "PLACED"
-	data["creation"] = time.Now().String()
+	order.OrderId = uuid.New().String()
+	order.Status = "PLACED"
+	order.PlacedOn = time.Now().String()
 
-	attrs := map[string]interface{}{
-		"orderid":    orderid,
-		"userid": "userid",
-		"data":   data,
-	}
-
-	if input, err := attributevalue.MarshalMap(attrs); err != nil {
+	if input, err := attributevalue.MarshalMap(order); err != nil {
 		return nil, err
 	} else {
 		ddb := client.NewDynamodb(tableName)
@@ -69,7 +72,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 			response := events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Headers:    client.HttpResponseHeaders,
-				Body:       fmt.Sprintf("{\"orderid\": \"%s\"}", attrs["_id"]),
+				Body:       fmt.Sprintf("{\"orderid\": \"%s\"}", order.OrderId),
 			}
 
 			return &response, nil
