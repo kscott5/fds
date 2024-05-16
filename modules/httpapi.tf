@@ -8,7 +8,7 @@ resource "aws_api_gateway_rest_api" "rest_api" {
   body = jsonencode({
     openapi = "3.0.1"
     info = {
-      title   = "FDS RestAPI Get Users (Python)",
+      title   = "FDS RestAPI Get Users (Go)",
       version = "1.0"
     },
     components = {
