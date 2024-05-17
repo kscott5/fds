@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -21,13 +20,13 @@ import (
 	"go.uber.org/zap"
 )
 
-var tableName string = os.Getenv("FDS_APPS_ORDERS_TABLE")
-
 func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger, _ := zap.NewDevelopment()
 	logger.Info("lambda function: dynamodb create new order")
 	logger.Debug(fmt.Sprintf("%v", request.Body))
 
+
+	tableName := os.Getenv("FDS_APPS_ORDERS_TABLE")
 	if tableName == "" {
 		tableName = "FDSAppsOrders"
 	}
@@ -35,7 +34,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	// anonymous structure
 	data := struct { 
 		RestaurantId string `json:"restaurantid"`
-		TotalAmount string `json:"totalamount"`
+		TotalAmount float64 `json:"totalamount"`
 		Items []string `json:"items"`
 		OrderId string
 		UserId string
@@ -49,16 +48,19 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	}
 
 	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
-	amount, err:= strconv.ParseFloat(data.TotalAmount,32)
-	if data.RestaurantId == "" || len(data.Items) == 0  || amount == 0 || err != nil  {
+	if data.RestaurantId == "" || len(data.Items) == 0  || data.TotalAmount <= 0  {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
+	data.UserId = "PLACEHOLDER"
 	// Cognitio user pool authentication and authorization
-	// cmapper := request.RequestContext.Authorizer["claims"]
-	// claims := cmapper.(map[string]string)
-	// order.UserId = claims["sub"]
-
+	if cmapper := request.RequestContext.Authorizer["claims"]; cmapper != nil {
+		claims := cmapper.(map[string]string)
+		if found := claims["sub"]; found != "" {
+			data.UserId = claims["sub"]
+		}
+	}
+	
 	data.OrderId = uuid.New().String()
 	data.Status = "PLACED"
 	data.PlacedOn = time.Now().UTC().String()
@@ -72,6 +74,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	if input, err := attributevalue.MarshalMap(order); err != nil {
 		return nil, err
 	} else {
+		logger.Debug("new dynamodb client session")
 		ddb := client.NewDynamodb(tableName)
 		params := dynamodb.PutItemInput{
 			TableName: aws.String(tableName),
