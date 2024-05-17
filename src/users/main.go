@@ -78,8 +78,7 @@ func getUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 		tableName = "FDSAppsUsers"
 	}
 
-	id := ""
-	json.Unmarshal([]byte(request.PathParameters["_id"]), &id)
+	id := request.PathParameters["_id"]
 	requires := map[string]string{"_id": "string"}
 	if id == "" {
 		return nil, fmt.Errorf("requires: %s", requires)
