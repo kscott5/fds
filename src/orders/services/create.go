@@ -25,6 +25,7 @@ var tableName string = os.Getenv("FDS_APPS_ORDERS_TABLE")
 func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger, _ := zap.NewDevelopment()
 	logger.Info("lambda function: dynamodb create new order")
+	logger.Debug(fmt.Sprintf("%v", request.Body))
 
 	if tableName == "" {
 		tableName = "FDSAppsOrders"
@@ -42,7 +43,9 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	}{}
 
 	// extract and validate request body
-	json.Unmarshal([]byte(request.Body), &order)
+	if err :=json.Unmarshal([]byte(request.Body), &order); err != nil {
+		return nil, err
+	}
 	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
 	if order.RestaurantId == "" || order.TotalAmount == 0 || len(order.Items) == 0 {
 		return nil, fmt.Errorf("requires: %s", requires)

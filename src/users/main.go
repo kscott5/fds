@@ -33,12 +33,12 @@ func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 
 	user := struct {
 		UserName string `json:"username"`
-		Fullname string `json:"fullname"`
+		FullName string `json:"fullname"`
 	}{}
 
 	json.Unmarshal([]byte(request.Body), &user)
 	requires := map[string]string{"username": "string", "fullname": "string"}
-	if user.UserName == "" || user.Fullname == "" {
+	if user.UserName == "" || user.FullName == "" {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
