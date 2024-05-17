@@ -34,10 +34,12 @@ func GetOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*eve
 	if orderid == "" {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
-
+	
+	userid, _ := attributevalue.Marshal("PLACEHOLDER")
 	attr, _ := attributevalue.Marshal(orderid)
 	key := map[string]types.AttributeValue{
 		"orderid": attr,
+		"userid": userid,
 	}
 
 	ddb := client.NewDynamodb(tableName)
