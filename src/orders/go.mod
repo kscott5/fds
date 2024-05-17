@@ -24,3 +24,5 @@ require (
 )
 
 replace github.com/kscott5/fds/internal/client => ../internal/
+
+replace github.com/kscott5/fds/orders/services => ./services
