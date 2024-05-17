@@ -61,7 +61,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 
 	data.OrderId = uuid.New().String()
 	data.Status = "PLACED"
-	data.PlacedOn = time.Now().String()
+	data.PlacedOn = time.Now().UTC().String()
 
 	order := map[string]interface{}{
 		"orderid": data.OrderId,
