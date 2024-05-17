@@ -23,6 +23,10 @@ func main() {
 		switch key, _ := client.GetRequestKeyFrom(request.HTTPMethod, request.Resource); key {
 		case "PUT /orders", "PUT /order":
 			return services.CreateOrder(ctx, request)
+		case "GET /orders":
+			return services.ListOrders(ctx, request)
+		case "GET /orders/{id}", "GET /order/{id}":
+			return services.GetOrder(ctx, request)
 		default:
 			return nil, fmt.Errorf("(%s) not valid. valid request requires httpmethod and resource", key)
 		}

@@ -7,6 +7,16 @@ data "archive_file" "placeorder_lambda_zip" {
   source_file = "../dist/orders/bootstrap"
 }
 
+data "archive_file" "listorders_lambda_zip" {
+  type        = "zip"
+  output_path = "../dist/${var.app_prefix}.lambda.orders.zip"
+  source_file = "../dist/orders/bootstrap"
+}
+data "archive_file" "getorder_lambda_zip" {
+  type        = "zip"
+  output_path = "../dist/${var.app_prefix}.lambda.orders.zip"
+  source_file = "../dist/orders/bootstrap"
+}
 resource "aws_lambda_function" "placeorder" {
   filename         = data.archive_file.placeorder_lambda_zip.output_path
   function_name    = "${var.app_prefix}PlaceOrder"
@@ -26,7 +36,52 @@ resource "aws_lambda_function" "placeorder" {
   }
 }
 
-output "placeorde_lambda" {
+resource "aws_lambda_function" "listorders" {
+  filename         = data.archive_file.listorders_lambda_zip.output_path
+  function_name    = "${var.app_prefix}ListOrders"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "bootstrap"
+  source_code_hash = data.archive_file.listorders_lambda_zip.output_base64sha256
+  runtime          = var.lambda_runtime[1]
+  architectures    = var.architectures
+  timeout          = var.lambda_timeout
+  tracing_config {
+    mode = var.lambda_tracing_config
+  }
+  environment {
+    variables = {
+      FDS_APPS_ORDERS_TABLE = aws_dynamodb_table.orders_table.id
+    }
+  }
+}
+
+resource "aws_lambda_function" "getorder" {
+  filename         = data.archive_file.getorder_lambda_zip.output_path
+  function_name    = "${var.app_prefix}GetOrder"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "bootstrap"
+  source_code_hash = data.archive_file.getorder_lambda_zip.output_base64sha256
+  runtime          = var.lambda_runtime[1]
+  architectures    = var.architectures
+  timeout          = var.lambda_timeout
+  tracing_config {
+    mode = var.lambda_tracing_config
+  }
+  environment {
+    variables = {
+      FDS_APPS_ORDERS_TABLE = aws_dynamodb_table.orders_table.id
+    }
+  }
+}
+output "placeorder_lambda" {
   #value = aws_lambda_function.getusers.function_name
   value = "${var.arn_aws_lambda_base}:${var.region}:${var.account_id}:function:${aws_lambda_function.placeorder.function_name}"
+}
+output "listorders_lambda" {
+  #value = aws_lambda_function.getusers.function_name
+  value = "${var.arn_aws_lambda_base}:${var.region}:${var.account_id}:function:${aws_lambda_function.listorders.function_name}"
+}
+output "getorder_lambda" {
+  #value = aws_lambda_function.getusers.function_name
+  value = "${var.arn_aws_lambda_base}:${var.region}:${var.account_id}:function:${aws_lambda_function.getorder.function_name}"
 }
