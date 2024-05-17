@@ -42,7 +42,7 @@ resource "aws_iam_policy" "lambda_role_policy" {
         "dynamodb:ConditionCheckItem"
       ],
       "Effect": "Allow",
-      "Resource": "arn:*:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.users_table.id}"
+      "Resource": "arn:*:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${var.app_prefix}*"
     },
     {
       "Action": [

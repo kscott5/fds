@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -32,22 +33,24 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	}
 
 	// anonymous structure
-	order := struct { 
+	data := struct { 
 		RestaurantId string `json:"restaurantid"`
-		TotalAmount float64 `json:"totalamount"`
+		TotalAmount string `json:"totalamount"`
 		Items []string `json:"items"`
 		OrderId string
 		UserId string
 		Status string
 		PlacedOn string 
-	}{}
+	}{ OrderId: uuid.New().String(), Status: "PLACED"}
 
 	// extract and validate request body
-	if err :=json.Unmarshal([]byte(request.Body), &order); err != nil {
+	if err :=json.Unmarshal([]byte(request.Body), &data); err != nil {
 		return nil, err
 	}
+
 	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
-	if order.RestaurantId == "" || order.TotalAmount == 0 || len(order.Items) == 0 {
+	amount, err:= strconv.ParseFloat(data.TotalAmount,32)
+	if data.RestaurantId == "" || len(data.Items) == 0  || amount == 0 || err != nil  {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
@@ -56,9 +59,15 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	// claims := cmapper.(map[string]string)
 	// order.UserId = claims["sub"]
 
-	order.OrderId = uuid.New().String()
-	order.Status = "PLACED"
-	order.PlacedOn = time.Now().String()
+	data.OrderId = uuid.New().String()
+	data.Status = "PLACED"
+	data.PlacedOn = time.Now().String()
+
+	order := map[string]interface{}{
+		"orderid": data.OrderId,
+		"userid": data.UserId,
+		"data": data,
+	}
 
 	if input, err := attributevalue.MarshalMap(order); err != nil {
 		return nil, err
@@ -75,7 +84,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 			response := events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Headers:    client.HttpResponseHeaders,
-				Body:       fmt.Sprintf("{\"orderid\": \"%s\"}", order.OrderId),
+				Body:       fmt.Sprintf("{\"orderid\": \"%s\"}", order["orderId"]),
 			}
 
 			return &response, nil
