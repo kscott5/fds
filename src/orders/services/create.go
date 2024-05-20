@@ -49,6 +49,7 @@ const (
 )
 
 type Items struct {
+	ItemId		string `json:"itemid"`
 	Description string  `json:"description"`
 	Quanity     int     `json:"quanity"`
 	Amount      float64 `json:"amount"`
@@ -62,6 +63,7 @@ type Order struct {
 	UserId       string
 	Status       string
 	PlacedOn     string
+	ModifiedOn	 string
 }
 
 
@@ -108,6 +110,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	data.OrderId = uuid.New().String()
 	data.Status = Placed.String()
 	data.PlacedOn = time.Now().UTC().String()
+	data.ModifiedOn = data.PlacedOn
 
 	order := map[string]interface{}{
 		"orderid": data.OrderId,
