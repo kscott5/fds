@@ -45,6 +45,7 @@ const (
 	Placed
 	Acknowledged
 	Cancelled
+	Paused
 )
 
 type Items struct {
