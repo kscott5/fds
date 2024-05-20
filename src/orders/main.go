@@ -23,6 +23,8 @@ func main() {
 		switch key, _ := client.GetRequestKeyFrom(request.HTTPMethod, request.Resource); key {
 		case "PUT /orders", "PUT /order":
 			return services.CreateOrder(ctx, request)
+		case "PUT /orders/{id}", "PUT /order/{id}":
+			return services.ModifyOrder(ctx, request)
 		case "GET /orders":
 			return services.ListOrders(ctx, request)
 		case "GET /orders/{id}", "GET /order/{id}":
