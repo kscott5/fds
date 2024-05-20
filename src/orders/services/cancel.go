@@ -19,7 +19,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func ModifyOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func CancelOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger, _ := zap.NewDevelopment()
 	logger.Info("lambda function: dynamodb modify order")
 	logger.Debug(fmt.Sprintf("%v", request.Body))
@@ -32,8 +32,8 @@ func ModifyOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 		return nil, err
 	} else if err := json.Unmarshal([]byte(response.Body), &po); err != nil {
 		return nil, err
-	} else if po.UserId != userid || po.Status == Acknowledged.String() {
-		return nil, fmt.Errorf("order updates not acceptable. previous order was acknowledged")
+	} else if po.UserId != userid || po.Status != Placed.String()  {
+		return nil, fmt.Errorf("unable to cancel order after ten minutes")
 	}
 
 	logger.Info("lambda function: processing order updates")
