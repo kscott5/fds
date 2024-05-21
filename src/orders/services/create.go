@@ -24,6 +24,7 @@ import (
 const (
 	OrderIdAttribute = "id"
 	NonContextualUserId = "placeholder"
+	DefaultOrderTable = "FDSAppsOrders"
 )
 
 type OrderTime time.Time
@@ -127,7 +128,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 
 	tableName := os.Getenv("FDS_APPS_ORDERS_TABLE")
 	if tableName == "" {
-		tableName = "FDSAppsOrders"
+		tableName = DefaultOrderTable
 	}
 
 	// extract and validate request body

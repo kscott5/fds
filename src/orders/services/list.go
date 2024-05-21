@@ -26,7 +26,7 @@ func GetOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*eve
 
 	tableName := os.Getenv("FDS_APPS_ORDERS_TABLE")
 	if tableName == "" {
-		tableName = "FDSAppsUsers"
+		tableName = DefaultOrderTable
 	}
 
 	orderid := request.PathParameters["id"]
