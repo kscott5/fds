@@ -22,12 +22,13 @@ import (
 )
 
 const (
-	OrderIdAttribute = "id"
+	OrderIdAttribute    = "id"
 	NonContextualUserId = "placeholder"
-	DefaultOrderTable = "FDSAppsOrders"
+	DefaultOrderTable   = "FDSAppsOrders"
 )
 
 type OrderStatus uint
+
 const (
 	Invalid OrderStatus = iota
 	Placed
@@ -35,6 +36,7 @@ const (
 	Cancelled
 	Paused
 )
+
 func (os OrderStatus) MarshalJSON() ([]byte, error) {
 	switch os {
 	case Placed:
@@ -80,21 +82,26 @@ func (os OrderStatus) String() string {
 }
 
 type Items struct {
-	ItemId		string `json:"itemid"`
+	ItemId      string  `json:"itemid"`
 	Description string  `json:"description"`
 	Quanity     int     `json:"quanity"`
 	Amount      float64 `json:"amount"`
 }
 
+type UnixMilliTime int64
+func (ut UnixMilliTime) String() string {
+	return time.UnixMilli(int64(ut)).Format(time.RFC3339)
+}
+
 type Order struct {
-	RestaurantId string  		`json:"restaurantid"`
-	TotalAmount  float64 		`json:"totalamount"`
-	Items        []Items 		`json:"items"`
-	OrderId      string	 		`json:"orderid"`
-	UserId       string	 		`json:"userid"`
-	Status       OrderStatus	`json:"status"`
-	PlacedOn     int64			`json:"placedon"`
-	ModifiedOn	 int64			`json:"modifiedon"`
+	RestaurantId string        `json:"restaurantid"`
+	TotalAmount  float64       `json:"totalamount"`
+	Items        []Items       `json:"items"`
+	OrderId      string        `json:"orderid"`
+	UserId       string        `json:"userid"`
+	Status       OrderStatus   `json:"status"`
+	PlacedOn     UnixMilliTime `json:"placedon"`
+	ModifiedOn   UnixMilliTime `json:"modifiedon"`
 }
 
 func GetUserFromRequestContext(authorizer map[string]interface{}) (string, error) {
@@ -137,7 +144,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	data.UserId, _ = GetUserFromRequestContext(request.RequestContext.Authorizer)
 	data.OrderId = uuid.New().String()
 	data.Status = Placed
-	data.PlacedOn = time.Now().Unix()
+	data.PlacedOn = UnixMilliTime(time.Now().UnixMilli())
 	data.ModifiedOn = data.PlacedOn
 
 	order := map[string]interface{}{

@@ -32,7 +32,7 @@ func CancelOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 		return nil, err
 	} else if err := json.Unmarshal([]byte(response.Body), &po); err != nil {
 		return nil, err
-	} else if po.UserId != userid || po.Status != Placed  {
+	} else if po.UserId != userid || po.Status != Placed {
 		return nil, fmt.Errorf("unable to cancel order after ten minutes")
 	}
 
@@ -46,23 +46,23 @@ func CancelOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 
 	// extract and validate request body
 	data := Order{}
-	if err :=json.Unmarshal([]byte(request.Body), &data); err != nil {
+	if err := json.Unmarshal([]byte(request.Body), &data); err != nil {
 		return nil, err
 	}
 
 	requires := map[string]string{"restaurantid": "string", "totalamount": "decimal", "items": "map"}
-	if data.RestaurantId == "" || len(data.Items) == 0  || data.TotalAmount <= 0  {
+	if data.RestaurantId == "" || len(data.Items) == 0 || data.TotalAmount <= 0 {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
 	data.Status = Placed
-	data.ModifiedOn = time.Now().Unix()
+	data.ModifiedOn = UnixMilliTime(time.Now().UnixMilli())
 
 	// current order
 	co := map[string]interface{}{
 		"orderid": data.OrderId,
-		"userid": data.UserId,
-		"data": data.Items,
+		"userid":  data.UserId,
+		"data":    data.Items,
 	}
 
 	if input, err := attributevalue.MarshalMap(co); err != nil {
