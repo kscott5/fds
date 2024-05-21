@@ -32,7 +32,7 @@ func CancelOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 		return nil, err
 	} else if err := json.Unmarshal([]byte(response.Body), &po); err != nil {
 		return nil, err
-	} else if po.UserId != userid || po.Status != Placed.String()  {
+	} else if po.UserId != userid || po.Status != Placed  {
 		return nil, fmt.Errorf("unable to cancel order after ten minutes")
 	}
 
@@ -55,7 +55,7 @@ func CancelOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	data.Status = Placed.String()
+	data.Status = Placed
 	data.ModifiedOn = time.Now().UTC().String()
 
 	// current order
