@@ -56,7 +56,7 @@ func CancelOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	}
 
 	data.Status = Placed
-	data.ModifiedOn = time.Now().UTC().String()
+	data.ModifiedOn = time.Now().UTC()
 
 	// current order
 	co := map[string]interface{}{

@@ -27,14 +27,6 @@ const (
 	DefaultOrderTable = "FDSAppsOrders"
 )
 
-type OrderTime time.Time
-func (ot OrderTime) MarshalJSON()([]byte, error) {	
-	return nil, fmt.Errorf("order time marshal json not available")
-}
-func (ot *OrderTime) Unmarshaler(data []byte) error {
-	return fmt.Errorf("order time unmarshaler not available")
-}
-
 type OrderStatus uint
 const (
 	Invalid OrderStatus = iota
@@ -56,12 +48,12 @@ func (os OrderStatus) MarshalJSON() ([]byte, error) {
 	}
 }
 func (os *OrderStatus) Unmarshaler(data []byte) error {
-	var status string
-	if err := json.Unmarshal(data, &status); err != nil {
+	var v string
+	if err := json.Unmarshal(data, &v); err != nil {
 		return err
 	}
 
-	switch strings.TrimSpace(strings.ToLower(status)) {
+	switch strings.TrimSpace(strings.ToLower(v)) {
 	case "placed":
 		*os = Placed
 	case "acknowledged":
@@ -95,14 +87,14 @@ type Items struct {
 }
 
 type Order struct {
-	RestaurantId string  `json:"restaurantid"`
-	TotalAmount  float64 `json:"totalamount"`
-	Items        []Items `json:"items"`
-	OrderId      string	 `json:"orderid"`
-	UserId       string	 `json:"userid"`
-	Status       OrderStatus  `json:"status"`
-	PlacedOn     string	 `json:"placedon"`
-	ModifiedOn	 string  `json:"modifiedon"`
+	RestaurantId string  		`json:"restaurantid"`
+	TotalAmount  float64 		`json:"totalamount"`
+	Items        []Items 		`json:"items"`
+	OrderId      string	 		`json:"orderid"`
+	UserId       string	 		`json:"userid"`
+	Status       OrderStatus	`json:"status"`
+	PlacedOn     time.Time		`json:"placedon"`
+	ModifiedOn	 time.Time		`json:"modifiedon"`
 }
 
 func GetUserFromRequestContext(authorizer map[string]interface{}) (string, error) {
@@ -145,7 +137,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	data.UserId, _ = GetUserFromRequestContext(request.RequestContext.Authorizer)
 	data.OrderId = uuid.New().String()
 	data.Status = Placed
-	data.PlacedOn = time.Now().UTC().String()
+	data.PlacedOn = time.Now()
 	data.ModifiedOn = data.PlacedOn
 
 	order := map[string]interface{}{
