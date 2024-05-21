@@ -18,6 +18,9 @@ import (
 
 	"go.uber.org/zap"
 )
+const (
+	MaxElapseTimeInSeconds = 600
+)
 
 func ModifyOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger, _ := zap.NewDevelopment()
@@ -26,13 +29,13 @@ func ModifyOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 
 	userid, _ := GetUserFromRequestContext(request.RequestContext.Authorizer)
 
-	// extract previous order and validate request.PathParameters.
+	// extract previous order and validate request.PathParameters with PUT /orders/{orderid} or PUT /order/{orderid}
 	po := Order{}
 	if response, err := GetOrder(ctx, request); err != nil {
 		return nil, err
 	} else if err := json.Unmarshal([]byte(response.Body), &po); err != nil {
 		return nil, err
-	} else if po.UserId != userid || po.Status == Acknowledged {
+	} else if po.UserId != userid || po.Status == Acknowledged || (time.Now().Unix() - po.PlacedOn) > MaxElapseTimeInSeconds {
 		return nil, fmt.Errorf("order updates not acceptable. previous order was acknowledged")
 	}
 
@@ -56,7 +59,7 @@ func ModifyOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	}
 
 	data.Status = Placed
-	data.ModifiedOn = time.Now().UTC()
+	data.ModifiedOn = time.Now().Unix()
 
 	// current order
 	co := map[string]interface{}{

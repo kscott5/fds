@@ -93,8 +93,8 @@ type Order struct {
 	OrderId      string	 		`json:"orderid"`
 	UserId       string	 		`json:"userid"`
 	Status       OrderStatus	`json:"status"`
-	PlacedOn     time.Time		`json:"placedon"`
-	ModifiedOn	 time.Time		`json:"modifiedon"`
+	PlacedOn     int64			`json:"placedon"`
+	ModifiedOn	 int64			`json:"modifiedon"`
 }
 
 func GetUserFromRequestContext(authorizer map[string]interface{}) (string, error) {
@@ -137,7 +137,7 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 	data.UserId, _ = GetUserFromRequestContext(request.RequestContext.Authorizer)
 	data.OrderId = uuid.New().String()
 	data.Status = Placed
-	data.PlacedOn = time.Now()
+	data.PlacedOn = time.Now().Unix()
 	data.ModifiedOn = data.PlacedOn
 
 	order := map[string]interface{}{
