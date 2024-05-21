@@ -27,7 +27,7 @@ const (
 )
 
 type OrderTime time.Time
-func (ot OrderTime) MarshalJSON()([]byte, error) {
+func (ot OrderTime) MarshalJSON()([]byte, error) {	
 	return nil, fmt.Errorf("order time marshal json not available")
 }
 func (ot *OrderTime) Unmarshaler(data []byte) error {
@@ -99,11 +99,10 @@ type Order struct {
 	Items        []Items `json:"items"`
 	OrderId      string	 `json:"orderid"`
 	UserId       string	 `json:"userid"`
-	Status       string  `json:"status"`
+	Status       OrderStatus  `json:"status"`
 	PlacedOn     string	 `json:"placedon"`
 	ModifiedOn	 string  `json:"modifiedon"`
 }
-
 
 func GetUserFromRequestContext(authorizer map[string]interface{}) (string, error) {
 	userId := NonContextualUserId
@@ -142,11 +141,9 @@ func CreateOrder(ctx context.Context, request *events.APIGatewayProxyRequest) (*
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	data.OrderId = uuid.New().String()
-	data.Status = Placed.String()
 	data.UserId, _ = GetUserFromRequestContext(request.RequestContext.Authorizer)
 	data.OrderId = uuid.New().String()
-	data.Status = Placed.String()
+	data.Status = Placed
 	data.PlacedOn = time.Now().UTC().String()
 	data.ModifiedOn = data.PlacedOn
 
