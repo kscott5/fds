@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -25,10 +26,55 @@ const (
 	NonContextualUserId = "placeholder"
 )
 
-type OrderStatus uint
+type OrderTime time.Time
+func (ot OrderTime) MarshalJSON()([]byte, error) {
+	return nil, fmt.Errorf("order time marshal json not available")
+}
+func (ot *OrderTime) Unmarshaler(data []byte) error {
+	return fmt.Errorf("order time unmarshaler not available")
+}
 
-func (status OrderStatus) String() string {
-	switch status {
+type OrderStatus uint
+const (
+	Invalid OrderStatus = iota
+	Placed
+	Acknowledged
+	Cancelled
+	Paused
+)
+func (os OrderStatus) MarshalJSON() ([]byte, error) {
+	switch os {
+	case Placed:
+		return []byte("placed"), nil
+	case Acknowledged:
+		return []byte("acknowledged"), nil
+	case Cancelled:
+		return []byte("cancelled"), nil
+	default:
+		return []byte("invalid"), fmt.Errorf("invalid order status marshal json not available")
+	}
+}
+func (os *OrderStatus) Unmarshaler(data []byte) error {
+	var status string
+	if err := json.Unmarshal(data, &status); err != nil {
+		return err
+	}
+
+	switch strings.TrimSpace(strings.ToLower(status)) {
+	case "placed":
+		*os = Placed
+	case "acknowledged":
+		*os = Acknowledged
+	case "cancelled":
+		*os = Cancelled
+	default:
+		*os = Invalid
+		return fmt.Errorf("order status unmarshaler not available")
+	}
+	return nil
+}
+func (os OrderStatus) String() string {
+	switch os {
 	case Placed:
 		return "placed"
 	case Acknowledged:
@@ -39,14 +85,6 @@ func (status OrderStatus) String() string {
 		return "invalid"
 	}
 }
-
-const (
-	Invalid OrderStatus = iota
-	Placed
-	Acknowledged
-	Cancelled
-	Paused
-)
 
 type Items struct {
 	ItemId		string `json:"itemid"`
@@ -59,11 +97,11 @@ type Order struct {
 	RestaurantId string  `json:"restaurantid"`
 	TotalAmount  float64 `json:"totalamount"`
 	Items        []Items `json:"items"`
-	OrderId      string
-	UserId       string
-	Status       string
-	PlacedOn     string
-	ModifiedOn	 string
+	OrderId      string	 `json:"orderid"`
+	UserId       string	 `json:"userid"`
+	Status       string  `json:"status"`
+	PlacedOn     string	 `json:"placedon"`
+	ModifiedOn	 string  `json:"modifiedon"`
 }
 
 
