@@ -46,7 +46,7 @@ resource "aws_cognito_user_pool_client" "user_pool_client" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "aws.cognito.signin.user.admin"]
-  callback_urls                        = ["http://localhost"]
+  callback_urls                        = ["https://localhost:8080"]
 }
 
 resource "aws_cognito_user_pool_domain" "user_pool_domain" {
@@ -73,7 +73,7 @@ output "user_pool_admin_group" {
 }
 
 output "cognito_login_url" {
-  value = "https://${aws_cognito_user_pool_client.user_pool_client.id}.auth.${var.region}.amazoncognito.com/login?client_id=${aws_cognito_user_pool_client.user_pool_client.id}&response_type=code&redirect_uri=http://localhost"
+  value = "https://${aws_cognito_user_pool_client.user_pool_client.id}.auth.${var.region}.amazoncognito.com/login?client_id=${aws_cognito_user_pool_client.user_pool_client.id}&response_type=code&redirect_uri=http://localhost:8080"
 }
 
 output "cognito_login_auth_command" {
