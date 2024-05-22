@@ -1,3 +1,6 @@
+# aws oauth2/authorize and oauth2/token generate data.
+tokens.json
+
 # Local .terraform directories
 **/.terraform/*
 **/dist/*
