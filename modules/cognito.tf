@@ -38,15 +38,25 @@ resource "aws_cognito_user_pool_client" "user_pool_client" {
     "ALLOW_USER_SRP_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH"
   ]
-  generate_secret                      = true
-  prevent_user_existence_errors        = "ENABLED"
+  generate_secret               = true
+  prevent_user_existence_errors = "ENABLED"
+
+  token_validity_units {
+    refresh_token = "days"
+    access_token  = "minutes"
+    id_token      = "minutes"
+  }
+
   refresh_token_validity               = 30
+  id_token_validity                    = 60
+  access_token_validity                = 60
   supported_identity_providers         = ["COGNITO"]
   user_pool_id                         = aws_cognito_user_pool.user_pool.id
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "aws.cognito.signin.user.admin"]
-  callback_urls                        = ["https://localhost:8080"]
+  callback_urls                        = ["http://localhost:8080"]
+
 }
 
 resource "aws_cognito_user_pool_domain" "user_pool_domain" {
