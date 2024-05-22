@@ -1,4 +1,4 @@
-module github.com/kscott5/fds/server
+module github.com/kscott5/fds/localhost
 
 go 1.22.1
 

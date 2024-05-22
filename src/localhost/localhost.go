@@ -11,32 +11,42 @@ import (
 	"go.uber.org/zap"
 )
 
-var logger *zap.Logger
-
 func getOath2Token(code string) ([]byte, error) {
+	logger, _ := zap.NewDevelopment()
+	logger.Info(fmt.Sprintf("get oauth2 token with code: %s", code))
+
 	clientId := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
 	tokenUrl := os.Getenv("CLIENT_TOKEN_URL")
+	
+	fmt.Println("environment variables available", clientId, tokenUrl)
 
 	clientSecretBasic := fmt.Sprintf("%s:%s", clientId, clientSecret)
+	
 
 	authorization := &strings.Builder{}
 	encoder := base64.NewEncoder(base64.StdEncoding, authorization)
-	encoder.Write([]byte(clientSecretBasic))
-	encoder.Close()
-
+	
+	defer encoder.Close()
+	if _, err := encoder.Write([]byte(clientSecretBasic)); err != nil {
+		return nil, err
+	}
+	
 	data := url.Values{}
 	data.Add("grant_type","authorization_code")
 	data.Add("client_id", clientId)
 	data.Add("code", code)
 	
-	reqBody := strings.NewReader(data.Encode())
-
-	request, err := http.NewRequest(http.MethodPost, tokenUrl, reqBody)
+	body := strings.NewReader(data.Encode())
+	
+	fmt.Println("creating http new request")
+	request, err := http.NewRequest(http.MethodPost, tokenUrl, body)
 	if err != nil {
 		return nil, err
 	}
 
+	request.URL.Scheme = "https"
+	request.Header.Add("content-type", "application/www-form-urlencoded")
 	request.Header.Add("authorization", authorization.String())
 	
 	client := http.DefaultClient
