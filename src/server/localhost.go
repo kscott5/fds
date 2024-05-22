@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,7 +13,7 @@ import (
 
 var logger *zap.Logger
 
-func getOath2Token(code string) error {
+func getOath2Token(code string) ([]byte, error) {
 	clientId := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
 	tokenUrl := os.Getenv("CLIENT_TOKEN_URL")
@@ -35,7 +34,7 @@ func getOath2Token(code string) error {
 
 	request, err := http.NewRequest(http.MethodPost, tokenUrl, reqBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	request.Header.Add("authorization", authorization.String())
@@ -43,13 +42,13 @@ func getOath2Token(code string) error {
 	client := http.DefaultClient
 	response, err := client.Do(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var size int64 = response.ContentLength
-	var resBody []byte = make([]byte, size)
-	response.Body.Read(resBody)
-	return nil
+	var tokenData []byte = make([]byte, size)
+	response.Body.Read(tokenData)
+	return tokenData, nil
 }
 
 func main() {
@@ -71,8 +70,10 @@ func main() {
 
 		if httpMethod != "get" || query.Has("code") == false {
 			res.Write([]byte("invalid server request. view oauth2 and aws cognito client pool redirect url"))
-		} else if err := getOath2Token(query.Get("code")); err != nil  {	
+		} else if token, err := getOath2Token(query.Get("code")); err != nil  {	
 			res.Write([]byte(fmt.Sprintf("%s", err)))
+		} else {
+			res.Write(token)
 		}
 	})
 
