@@ -15,12 +15,23 @@ func main() {
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request){
 		logger.Debug("localhost processing oauth request")
 
-		data := make(map[string]string,1)
-
 		res.WriteHeader(200)
 		res.Header().Add("content-type", "application/json")
 
+		body := make(map[string]interface{},1)
+		body["status"] = 200
+
 		query := req.URL.Query()
+		if query.Has("error") && query.Has("error_description") {
+			body["error"] = query.Get("error")
+			body["error_description"] = query.Get("error_description")
+
+			buffer, _ := json.Marshal(body)
+			res.Write(buffer)
+			return
+		}
+		
+		data := make(map[string]string,1)
 		if query.Has("id_token")  {			
 			data["id_token"] = query.Get("id_token")
 		}
@@ -40,10 +51,7 @@ func main() {
 		if query.Has("state") {
 			data["state"] = query.Get("state")
 		}
-		
-		body := make(map[string]interface{},1)
-		body["status"] = 200
-		
+
 		if len(data) == 5 {
 			body["message"] = "invalid response from oauth2/authorize request"
 		} else { 
