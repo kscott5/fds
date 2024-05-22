@@ -16,7 +16,7 @@ func main() {
 
 		res.Write([]byte("<h1>Keep it simple</h1>"))
 		res.Write([]byte("The address bar contains either the access_token and id_token or error message<br/><br/>"))
-		res.Write([]byte("Access API gateway with curl.<br/><br/>"))
+		res.Write([]byte("Access API gateway with curl and access_token or id_token.<br/><br/>"))
 		res.Write([]byte("NOTE: the hash tag is reserve use with web or SPA apps. <br/>"))
 		res.Write([]byte("Example: javascript:document.location.hash"))
 	})
