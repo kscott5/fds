@@ -73,7 +73,7 @@ output "user_pool_admin_group" {
 }
 
 output "cognito_login_url" {
-  value = "https://${aws_cognito_user_pool_client.user_pool_client.id}.auth.${var.region}.amazoncognito.com/login?client_id=${aws_cognito_user_pool_client.user_pool_client.id}&response_type=code&redirect_uri=http://localhost:8080"
+  value = "https://${aws_cognito_user_pool_client.user_pool_client.id}.auth.${var.region}.amazoncognito.com/oauth2/authorize?client_id=${aws_cognito_user_pool_client.user_pool_client.id}&response_type=token&state=request&scope=aws.cognito.signin.user.admin+openid+profile&redirect_uri=http://localhost:8080"
 }
 
 output "cognito_login_auth_command" {
