@@ -10,6 +10,7 @@
     "users": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/users -tags lambda.norpc -o ~/apps/fds/dist/users/bootstrap main.go",
     "orders": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/orders -tags lambda.norpc -o ~/apps/fds/dist/orders/bootstrap main.go",
     "auth": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C ~/apps/fds/src/authorizer -tags lambda.norpc -o ~/apps/fds/dist/auth/bootstrap authorize.go",
+    "localhost": "npm run clean && go build -C ~/apps/fds/src/localhost -o ~/apps/fds/dist/localhost localhost.go && ~/apps/fds/dist/localhost",
     "build": "npm run clean && npm run users && npm run orders && npm run auth",
     "terraform": "terraform -chdir=./modules init && terraform -chdir=./modules fmt && terraform -chdir=./modules validate",
     "deploy": "npm run clean && npm run build && npm run terraform && terraform -chdir=./modules apply --auto-approve",

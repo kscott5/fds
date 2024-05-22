@@ -78,7 +78,9 @@ func main() {
 	})
 
 	logger.Info("Starting localhost on port: 80")
-	logger.Debug("localhost expeccts client id and client secret environment variables")
+	logger.Debug("localhost expects client id and client secret environment variables")
 
-	http.ListenAndServe(":80", nil)
+	if err := http.ListenAndServe(":80", nil); err != nil {
+		logger.Error(fmt.Sprintf("%s", err))
+	}
 }
