@@ -30,7 +30,6 @@ var (
 	AppClientId    = os.Getenv("FDS_APPLICATION_CLIENT_ID")
 	AdminGroupName = os.Getenv("FDS_ADMIN_GROUP_NAME")
 	
-	logger    *zap.Logger
 	HttpVerb = map[string]string{
 		"GET":     "GET",
 		"POST":    "POST",
@@ -161,7 +160,54 @@ func (pr *LocalAuthorizerResponse) Build(principalId string) error {
 	return nil
 }
 
-func GetWellKnownJwksKeys(region, userPoolId string)(map[string]interface{}, error) {
+//https://datatracker.ietf.org/doc/html/rfc7517
+type WellKnowJwtKey struct {
+	Algorithm 		string `json:"alg"`
+	KeyType 		string `json:"kty"`
+	PublicKeyUse 	string `json:"use"`
+	KeyId			string `json:"kid"`
+	PublicExponent	string `json:"e"`	// 9.3.  RSA Private Key Representations and Blinding
+	PrivateExponent string `json:"d"`	// 9.3.  RSA Private Key Representations and Blinding
+	Modulus			string `json:"n"`	// 9.3.  RSA Private Key Representations and Blinding
+}
+
+type CustomMapClaims struct {
+	jwt.MapClaims
+}
+
+func (c CustomMapClaims) GetTokenId() string {
+	if tokenId, ok := c.MapClaims["token_id"]; ok {
+		return tokenId.(string)
+	}
+	return ""
+}
+func (c CustomMapClaims) GetScope() string {
+	if scope, ok := c.MapClaims["scope"]; ok {
+		return scope.(string)
+	}
+	return ""
+}
+func (c CustomMapClaims) GetEmail() string {
+	if email, ok := c.MapClaims["email"]; ok {
+		return email.(string)
+	}
+	return ""
+}
+func (c CustomMapClaims) GetCognitoGroups() []string {
+	if groups, ok := c.MapClaims["cognito:groups"]; ok {
+		return groups.([]string)
+	}
+	return []string{}
+}
+func (c CustomMapClaims) GetCognitoUserName() string {
+	if username, ok := c.MapClaims["cognito:username"]; ok {
+		return username.(string)
+	}
+	return ""
+}
+
+func GetWellKnownJwksKeys(region, userPoolId string)([]WellKnowJwtKey, error) {
+	logger, _ := zap.NewDevelopment()
 	logger.Info("GetWellKnowJwksKeys")
 
 	// KEYS URL -- REPLACE WHEN CHANGING IDENTITY PROVIDER
@@ -176,7 +222,7 @@ func GetWellKnownJwksKeys(region, userPoolId string)(map[string]interface{}, err
 		if size, err := res.Body.Read(body); err != nil {
 			return nil, err
 		} else if int64(size) == res.ContentLength {
-			keys := make(map[string]interface{}, 1)
+			keys := make([]WellKnowJwtKey, 1)
 			json.Unmarshal(body, &keys)
 
 			return keys, nil
@@ -186,39 +232,40 @@ func GetWellKnownJwksKeys(region, userPoolId string)(map[string]interface{}, err
 	}
 }
 
-func ValidateAuthToken(region, authToken string) (map[string]interface{}, error) {
-	logger.Debug("validateAuthToken")
-	logger.Debug(fmt.Sprintf("validateAuthToken: %s %s", region, authToken))
+func ValidateAuthToken(region, authToken string) (*CustomMapClaims, error) {
+	logger, _ := zap.NewDevelopment()
+	logger.Debug(fmt.Sprintf("validateAuthToken: %s %s********", region, authToken[:5]))
 
-	if keys, err := GetWellKnownJwksKeys(region, UserPoolId); err != nil {
-		return nil, err
+	if wkjwkeys, err := GetWellKnownJwksKeys(region, UserPoolId); err != nil {
+		return &CustomMapClaims{}, err
 	} else {
-
 		rs256 := jwt.NewParser(jwt.WithValidMethods([]string{"RS256"}))
 	
-		_, err := rs256.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
+		token , err := rs256.ParseWithClaims(authToken, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 			// Don't forget to validate the alg is what you expect:
 			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("parse with custom claim signing method: %v not RS256", token.Header["alg"])
 			}
 
+			logger.Debug(fmt.Sprintf("parse with claims, token header: %v", token.Header))
 			header := token.Header
-			for _, v := range keys {
-				key := v.(map[string]string)
-				if key["kid"] == header["kid"] {
-					fmt.Println(header)
-				}
+			for _, v := range wkjwkeys {
+				if v.KeyId == header["kid"] {
+					logger.Debug(fmt.Sprintf("parse with custom claim found with same header key id: %v", v.KeyId))
 
+					return token, nil
+				}
 			}
-			return token, fmt.Errorf("%v", token)
+			logger.Debug("possible invalid parse")
+			return token, nil
 		})
 
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return &CustomMapClaims{}, err
+		} else {
+			claim := token.Claims.(CustomMapClaims)
+			return &claim, nil
 		}
-			
-		return nil, fmt.Errorf("not available")
 	}
 }
 
@@ -226,6 +273,7 @@ func main() {
 	logger, _ := zap.NewDevelopment()
 	logger.Info("FDS main authorizer")
 
+	adminGroupName := os.Getenv("FDS_ADMIN_GROUP_NAME")
 	lambdaHandler := lambda.NewHandler(func(ctx context.Context, request *events.APIGatewayCustomAuthorizerRequest) (*LocalAuthorizerResponse, error) {
 		logger.Info("FDS lambda.Start authorizer")
 
@@ -238,19 +286,21 @@ func main() {
 			return &LocalAuthorizerResponse{}, fmt.Errorf("request method arn not available")
 		}
 
-		if token, err := ValidateAuthToken(methodArn[3], request.AuthorizationToken); err != nil {
+		if claim, err := ValidateAuthToken(/*region*/ methodArn[3], request.AuthorizationToken); err != nil {
 			return &LocalAuthorizerResponse{}, err
 		} else {
 			apiGatewayArn := strings.Split(methodArn[5], "/")
 			response := LocalAuthorizerResponse{
 				// Save the ARN parts
-				//PrincipalID: token["sub"],
 				AccountId: methodArn[4],
 				Region:    methodArn[3],
 				Route:     methodArn[2],
 				Stage:     apiGatewayArn[1],
 				ApiId:     apiGatewayArn[0],
 			}
+			
+			principalId, _ := claim.GetSubject()
+			response.PrincipalID = principalId
 
 			// *** Section 2 : authorization rules
 			// Allow all public resources/methods explicitly
@@ -270,20 +320,26 @@ func main() {
 			
 			// Look for admin group in Cognito groups
 			// Assumption: admin group always has higher precedence
-			// if found := token["cognito:groups"]; found && token["cognito:groups"][0] == adminGroupName {
-			// 	// add administrative privileges
-			// 	response.AllowMethod(HttpVerb["GET"], "users")
-			// 	response.AllowMethod(HttpVerb["GET"], "users/*")
-			
+			groupNames := claim.GetCognitoGroups()
+			for i := range groupNames {
+				 if groupNames[i] == adminGroupName {
+					// add administrative privileges
+					response.AllowMethod(HttpVerb["GET"], "users")
+					response.AllowMethod(HttpVerb["GET"], "users/*")
+				
 
-			// 	response.AllowMethod(HttpVerb["DELETE"], "users")
-			// 	response.AllowMethod(HttpVerb["DELETE"], "users/*")
-			// 	response.AllowMethod(HttpVerb["PUT"], "users")
-			// 	response.AllowMethod(HttpVerb["PUT"], "users/*")
-			// }
+					response.AllowMethod(HttpVerb["DELETE"], "users")
+					response.AllowMethod(HttpVerb["DELETE"], "users/*")
+					response.AllowMethod(HttpVerb["PUT"], "users")
+					response.AllowMethod(HttpVerb["PUT"], "users/*")
+				 }
+			}
 
-			//response.Build()
-			return &response, fmt.Errorf("not available: token-> %s", token)
+			if err:= response.Build(principalId); err != nil {
+				return &LocalAuthorizerResponse{}, err
+			} else {
+				return &response, nil
+			}
 		}
 	})
 
