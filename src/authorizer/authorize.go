@@ -137,6 +137,9 @@ func (pr *LocalAuthorizerResponse) getStatementForEffect(effect string, methods 
 }
 
 func (pr *LocalAuthorizerResponse) Build(principalId string) error {
+	logger, _ := zap.NewDevelopment()
+	logger.Info("build local authorizer response")
+
 	/*Generates the policy document based on the internal lists of allowed and denied
 	  conditions. This will generate a policy with two main statements for the effect:
 	  one statement for Allow and one statement for Deny.
@@ -194,10 +197,22 @@ func (c CustomMapClaims) GetEmail() string {
 	return ""
 }
 func (c CustomMapClaims) GetCognitoGroups() []string {
-	if groups, ok := c.MapClaims["cognito:groups"]; ok {
-		return groups.([]string)
+	groups := c.MapClaims["cognito:groups"]
+	var cs []string
+	switch v := groups.(type) {
+	case []interface{}:
+		for _, a := range v {
+			if vs, ok := a.(string); !ok { 
+				return nil
+			} else {
+				cs = append(cs, vs)
+			}
+		}
+	default:
+		return nil
 	}
-	return []string{}
+
+	return cs
 }
 func (c CustomMapClaims) GetCognitoUserName() string {
 	if username, ok := c.MapClaims["cognito:username"]; ok {
@@ -208,32 +223,38 @@ func (c CustomMapClaims) GetCognitoUserName() string {
 
 func GetWellKnownJwksKeys(region, userPoolId string)([]WellKnowJwtKey, error) {
 	logger, _ := zap.NewDevelopment()
-	logger.Info("GetWellKnowJwksKeys")
+	logger.Info("get well known jwks keys")
 
 	// KEYS URL -- REPLACE WHEN CHANGING IDENTITY PROVIDER
 	keysUrl := fmt.Sprintf("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, userPoolId)
 
-	if res, err := http.Get(keysUrl); err != nil {
+	res, err := http.Get(keysUrl)
+	if err != nil {
+		logger.Debug(fmt.Sprint(err))
 		return nil, err
-	} else {
-		size := res.ContentLength
-		body := make([]byte, size)
-		
-		if size, err := res.Body.Read(body); err != nil {
-			return nil, err
-		} else if int64(size) == res.ContentLength {
-			keys := make([]WellKnowJwtKey, 1)
-			json.Unmarshal(body, &keys)
-
-			return keys, nil
-		} else {
-			return nil, err
-		}
 	}
+	
+	size := res.ContentLength
+	body := make([]byte, size)
+	
+	_, err = res.Body.Read(body)
+	if err != nil {
+		logger.Debug(fmt.Sprint(err))
+		return nil, err
+	}
+
+	keys := make(map[string][]WellKnowJwtKey,1)
+	if err := json.Unmarshal(body, &keys); err != nil {
+		logger.Debug(fmt.Sprint(err))
+		return nil, err
+	}
+
+	return keys["keys"], nil
 }
 
+// Don't forget go func public and private scope 
 func ValidateAuthToken(region, authToken string) (*CustomMapClaims, error) {
-	logger, _ := zap.NewDevelopment()
+	logger, _ := zap.NewDevelopment() // the reason this is defined
 	logger.Debug(fmt.Sprintf("validateAuthToken: %s %s********", region, authToken[:5]))
 
 	if wkjwkeys, err := GetWellKnownJwksKeys(region, UserPoolId); err != nil {
@@ -247,25 +268,29 @@ func ValidateAuthToken(region, authToken string) (*CustomMapClaims, error) {
 				return nil, fmt.Errorf("parse with custom claim signing method: %v not RS256", token.Header["alg"])
 			}
 
-			logger.Debug(fmt.Sprintf("parse with claims, token header: %v", token.Header))
 			header := token.Header
 			for _, v := range wkjwkeys {
-				if v.KeyId == header["kid"] {
+				kid := header["kid"].(string)
+				if v.KeyId == kid {
 					logger.Debug(fmt.Sprintf("parse with custom claim found with same header key id: %v", v.KeyId))
 
 					return token, nil
 				}
 			}
+			
 			logger.Debug("possible invalid parse")
 			return token, nil
 		})
 
 		if err != nil {
-			return &CustomMapClaims{}, err
-		} else {
-			claim := token.Claims.(CustomMapClaims)
-			return &claim, nil
+			logger.Debug(fmt.Sprint(err))
 		}
+
+		claim := CustomMapClaims{
+			MapClaims: token.Claims.(jwt.MapClaims),
+		}
+		return &claim, nil
+	
 	}
 }
 
@@ -274,7 +299,7 @@ func main() {
 	logger.Info("FDS main authorizer")
 
 	adminGroupName := os.Getenv("FDS_ADMIN_GROUP_NAME")
-	lambdaHandler := lambda.NewHandler(func(ctx context.Context, request *events.APIGatewayCustomAuthorizerRequest) (*LocalAuthorizerResponse, error) {
+	lambdaHandler := lambda.NewHandler(func(ctx context.Context, request *events.APIGatewayCustomAuthorizerRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
 		logger.Info("FDS lambda.Start authorizer")
 
 		// Parse the input for the parameter values
@@ -283,14 +308,17 @@ func main() {
 		logger.Debug(fmt.Sprint(methodArn))
 		
 		if len(methodArn) < 6 {
-			return &LocalAuthorizerResponse{}, fmt.Errorf("request method arn not available")
+			return nil, fmt.Errorf("request method arn not available")
 		}
 
 		if claim, err := ValidateAuthToken(/*region*/ methodArn[3], request.AuthorizationToken); err != nil {
-			return &LocalAuthorizerResponse{}, err
+			return nil, err
 		} else {
 			apiGatewayArn := strings.Split(methodArn[5], "/")
 			response := LocalAuthorizerResponse{
+				allowMethods: make([]Method, 6),
+				denyMethods: make([]Method, 6),
+				
 				// Save the ARN parts
 				AccountId: methodArn[4],
 				Region:    methodArn[3],
@@ -301,9 +329,11 @@ func main() {
 			
 			principalId, _ := claim.GetSubject()
 			response.PrincipalID = principalId
+			logger.Debug(fmt.Sprintf("principal id: %s", principalId))
 
 			// *** Section 2 : authorization rules
 			// Allow all public resources/methods explicitly
+			logger.Debug("Allow all public resources or methods")
 
 			var seperator = ""
 			var singleResource = strings.Join([]string{"/users/", response.PrincipalID}, seperator)
@@ -320,9 +350,12 @@ func main() {
 			
 			// Look for admin group in Cognito groups
 			// Assumption: admin group always has higher precedence
+
 			groupNames := claim.GetCognitoGroups()
 			for i := range groupNames {
 				 if groupNames[i] == adminGroupName {
+					logger.Debug("admin group has higher precedence")
+
 					// add administrative privileges
 					response.AllowMethod(HttpVerb["GET"], "users")
 					response.AllowMethod(HttpVerb["GET"], "users/*")
@@ -336,9 +369,9 @@ func main() {
 			}
 
 			if err:= response.Build(principalId); err != nil {
-				return &LocalAuthorizerResponse{}, err
+				return nil, err
 			} else {
-				return &response, nil
+				return &response.APIGatewayCustomAuthorizerResponse, nil
 			}
 		}
 	})
