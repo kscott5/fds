@@ -29,18 +29,31 @@ var (
 	UserPoolId     = os.Getenv("FDS_USER_POOL_ID")
 	AppClientId    = os.Getenv("FDS_APPLICATION_CLIENT_ID")
 	AdminGroupName = os.Getenv("FDS_ADMIN_GROUP_NAME")
-	
-	HttpVerb = map[string]string{
-		"GET":     "GET",
-		"POST":    "POST",
-		"PUT":     "PUT",
-		"PATCH":   "PATCH",
-		"HEAD":    "HEAD",
-		"DELETE":  "DELETE",
-		"OPTIONS": "OPTIONS",
-		"ALL":     "*",
-	}
+) 
+
+type HttpMethod uint8
+const (
+	GET HttpMethod = iota
+	POST
+	PUT
+	PATCH
+	HEAD
+	DELETE
+	OPTIONS
+	ALL
 )
+
+func (h HttpMethod) String() string {
+	switch h {
+	case GET: return "GET"
+	case POST: return "POST"
+	case PUT: return "PUT"
+	case HEAD: return "HEAD"
+	case DELETE: return "DELETE"
+	case OPTIONS: return "OPTIONS"
+	default: return "ALL"
+	}
+}
 
 type Method struct {
 	ResourceArn string
@@ -59,16 +72,12 @@ type LocalAuthorizerResponse struct {
 	ApiId     string `json:"-"`
 }
 
-func (pr *LocalAuthorizerResponse) addMethod(effect, verb, resource string, conditions []string) error {
+func (pr *LocalAuthorizerResponse) addMethod(effect, resource string, method HttpMethod, conditions []string) error {
 	/* Adds a method to the internal lists of allowed or denied methods. Each object in
 	   the internal list contains a resource ARN and a condition statement. The condition
 	   statement can be null. */
-	if found := HttpVerb[verb]; found != "" && verb != "*" {
-		return fmt.Errorf("invalid HTTP verb '%s'", verb)
-	}
-
-	if found, _ := regexp.Match(pattern, []byte(resource)); !found {
-		return fmt.Errorf("invalid resource path: '%s'. path should match '%s'", resource, pattern)
+	if ok, err := regexp.Match(pattern, []byte(resource)); !ok {
+		return err
 	}
 	if resource[0:1] == "/" {
 		resource = resource[1:]
@@ -76,38 +85,38 @@ func (pr *LocalAuthorizerResponse) addMethod(effect, verb, resource string, cond
 
 	// https://pkg.go.dev/strings#Builder
 	resourceArnBuilder := strings.Builder{}
-	fmt.Fprintf(&resourceArnBuilder, "arn:aws:execute-api:%s:%s:%s/%s/%s/%s", pr.Region, pr.AccountId, pr.ApiId, pr.Stage, verb, resource)
+	fmt.Fprintf(&resourceArnBuilder, "arn:aws:execute-api:%s:%s:%s/%s/%s/%s", pr.Region, pr.AccountId, pr.ApiId, pr.Stage, method, resource)
 
-	method := Method{ResourceArn: resourceArnBuilder.String(), Conditions: conditions}
+	methodState := Method{ResourceArn: resourceArnBuilder.String(), Conditions: conditions}
 	if strings.ToLower(effect) == "allow" {
-		pr.allowMethods = append(pr.allowMethods, method)
+		pr.allowMethods = append(pr.allowMethods, methodState)
 	} else if strings.ToLower(effect) == "deny" {
-		pr.denyMethods = append(pr.denyMethods, method)
+		pr.denyMethods = append(pr.denyMethods, methodState)
 	}
 
 	return nil
 }
 
-func (pr *LocalAuthorizerResponse) AllowAllMethods() {
+func (pr *LocalAuthorizerResponse) AllowAllMethods() error {
 	//Adds a '*' allow to the policy to authorize access to all methods of an API
-	pr.addMethod("Allow", HttpVerb["ALL"], "*", []string{})
+	return pr.addMethod("Allow", "*", ALL, []string{})
 }
 
-func (pr *LocalAuthorizerResponse) DenyAllMethods() {
+func (pr *LocalAuthorizerResponse) DenyAllMethods() error {
 	//Adds a '*' allow to the policy to deny access to all methods of an API
-	pr.addMethod("Deny", HttpVerb["ALL"], "*", []string{})
+	return pr.addMethod("Deny", "*", ALL, []string{})
 }
 
-func (pr *LocalAuthorizerResponse) AllowMethod(verb, resource string) {
+func (pr *LocalAuthorizerResponse) AllowMethod(verb HttpMethod, resource string) error {
 	/*Adds an API Gateway method (Http verb + Resource path) to the list of allowed\
 	  methods for the policy';*/
-	pr.addMethod("Allow", verb, resource, []string{})
+	return pr.addMethod("Allow",resource, verb, []string{})
 }
 
-func (pr *LocalAuthorizerResponse) DenyMethod(verb, resource string) {
+func (pr *LocalAuthorizerResponse) DenyMethod(verb HttpMethod, resource string) error {
 	/*Adds an API Gateway method (Http verb + Resource path) to the list of denied\n' +
 	  methods for the policy*/
-	pr.addMethod("Deny", verb, resource, []string{})
+	return pr.addMethod("Deny", resource, verb, []string{})
 }
 
 func (pr *LocalAuthorizerResponse) getEmptyStatement(effect string) events.IAMPolicyStatement {
@@ -151,6 +160,8 @@ func (pr *LocalAuthorizerResponse) Build(principalId string) error {
 	pr.PrincipalID = principalId
 	pr.PolicyDocument.Version = version
 	pr.PolicyDocument.Statement = []events.IAMPolicyStatement{}
+
+	logger.Debug(fmt.Sprint(pr))
 
 	var allowMethodsStatement = pr.getStatementForEffect("Allow", pr.allowMethods)
 	var denyMethodsStatement = pr.getStatementForEffect("Deny", pr.denyMethods)
@@ -317,7 +328,7 @@ func main() {
 			apiGatewayArn := strings.Split(methodArn[5], "/")
 			response := LocalAuthorizerResponse{
 				allowMethods: make([]Method, 6),
-				denyMethods: make([]Method, 6),
+				//denyMethods: make([]Method, 6),
 				
 				// Save the ARN parts
 				AccountId: methodArn[4],
@@ -339,14 +350,12 @@ func main() {
 			var singleResource = strings.Join([]string{"/users/", response.PrincipalID}, seperator)
 			var multiResource = strings.Join([]string{"/users/", response.PrincipalID, "/*"}, seperator)
 
-			response.AllowMethod(HttpVerb["GET"], singleResource)
-			response.AllowMethod(HttpVerb["PUT"], singleResource)
-			response.AllowMethod(HttpVerb["DELETE"], singleResource)
-			response.AllowMethod(HttpVerb["GET"], multiResource)
-			response.AllowMethod(HttpVerb["PUT"], multiResource)
-			response.AllowMethod(HttpVerb["PUT"], multiResource)
-			response.AllowMethod(HttpVerb["DELETE"], multiResource)
-
+			response.AllowMethod(GET, singleResource)
+			response.AllowMethod(PUT, singleResource)
+			response.AllowMethod(DELETE, singleResource)
+			response.AllowMethod(GET, multiResource)
+			response.AllowMethod(PUT, multiResource)
+			response.AllowMethod(DELETE, multiResource)
 			
 			// Look for admin group in Cognito groups
 			// Assumption: admin group always has higher precedence
@@ -357,15 +366,20 @@ func main() {
 					logger.Debug("admin group has higher precedence")
 
 					// add administrative privileges
-					response.AllowMethod(HttpVerb["GET"], "users")
-					response.AllowMethod(HttpVerb["GET"], "users/*")
+					response.AllowMethod(GET, "users")
+					response.AllowMethod(GET, "users/*")
 				
-
-					response.AllowMethod(HttpVerb["DELETE"], "users")
-					response.AllowMethod(HttpVerb["DELETE"], "users/*")
-					response.AllowMethod(HttpVerb["PUT"], "users")
-					response.AllowMethod(HttpVerb["PUT"], "users/*")
+					response.AllowMethod(DELETE, "users")
+					response.AllowMethod(DELETE, "users/*")
+					response.AllowMethod(PUT, "users")
+					response.AllowMethod(PUT, "users/*")
 				 }
+			}
+
+			if len(response.allowMethods) == 0 {
+				return &events.APIGatewayCustomAuthorizerResponse{}, 
+					fmt.Errorf("resources %s or %s not allow with HttpVerbs. regexpr.match(%s)", 
+						singleResource, multiResource, pattern)
 			}
 
 			if err:= response.Build(principalId); err != nil {
