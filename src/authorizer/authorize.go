@@ -30,6 +30,17 @@ var (
 	AppClientId    = os.Getenv("FDS_APPLICATION_CLIENT_ID")
 	AdminGroupName = os.Getenv("FDS_ADMIN_GROUP_NAME")
 ) 
+type HttpEffect uint8
+const (
+	Allow HttpEffect = iota 
+	Deny
+)
+func (e HttpEffect) String () string {
+	switch e {
+	case Allow: return "Allow"
+	default: return "Deny"
+	}
+}
 
 type HttpMethod uint8
 const (
@@ -72,7 +83,7 @@ type LocalAuthorizerResponse struct {
 	ApiId     string `json:"-"`
 }
 
-func (pr *LocalAuthorizerResponse) addMethod(effect, resource string, method HttpMethod, conditions []string) error {
+func (pr *LocalAuthorizerResponse) appendMethod(effect HttpEffect, method HttpMethod, resource string, conditions []string) error {
 	/* Adds a method to the internal lists of allowed or denied methods. Each object in
 	   the internal list contains a resource ARN and a condition statement. The condition
 	   statement can be null. */
@@ -88,9 +99,9 @@ func (pr *LocalAuthorizerResponse) addMethod(effect, resource string, method Htt
 	fmt.Fprintf(&resourceArnBuilder, "arn:aws:execute-api:%s:%s:%s/%s/%s/%s", pr.Region, pr.AccountId, pr.ApiId, pr.Stage, method, resource)
 
 	methodState := Method{ResourceArn: resourceArnBuilder.String(), Conditions: conditions}
-	if strings.ToLower(effect) == "allow" {
+	if effect == Allow {
 		pr.allowMethods = append(pr.allowMethods, methodState)
-	} else if strings.ToLower(effect) == "deny" {
+	} else if effect == Deny {
 		pr.denyMethods = append(pr.denyMethods, methodState)
 	}
 
@@ -99,24 +110,24 @@ func (pr *LocalAuthorizerResponse) addMethod(effect, resource string, method Htt
 
 func (pr *LocalAuthorizerResponse) AllowAllMethods() error {
 	//Adds a '*' allow to the policy to authorize access to all methods of an API
-	return pr.addMethod("Allow", "*", ALL, []string{})
+	return pr.appendMethod(Allow, ALL, "*", []string{})
 }
 
 func (pr *LocalAuthorizerResponse) DenyAllMethods() error {
 	//Adds a '*' allow to the policy to deny access to all methods of an API
-	return pr.addMethod("Deny", "*", ALL, []string{})
+	return pr.appendMethod(Deny, ALL, "*", []string{})
 }
 
 func (pr *LocalAuthorizerResponse) AllowMethod(verb HttpMethod, resource string) error {
 	/*Adds an API Gateway method (Http verb + Resource path) to the list of allowed\
 	  methods for the policy';*/
-	return pr.addMethod("Allow",resource, verb, []string{})
+	return pr.appendMethod(Allow, verb, resource, []string{})
 }
 
 func (pr *LocalAuthorizerResponse) DenyMethod(verb HttpMethod, resource string) error {
 	/*Adds an API Gateway method (Http verb + Resource path) to the list of denied\n' +
 	  methods for the policy*/
-	return pr.addMethod("Deny", resource, verb, []string{})
+	return pr.appendMethod(Deny, verb, resource, []string{})
 }
 
 func (pr *LocalAuthorizerResponse) getEmptyStatement(effect string) events.IAMPolicyStatement {
