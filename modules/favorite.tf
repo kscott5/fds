@@ -1,8 +1,8 @@
-resource aws_dynamodb_table "favoritetable" {
+resource "aws_dynamodb_table" "favoritetable" {
   name         = "${var.app_prefix}Favorite"
   billing_mode = "PROVISIONED"
-  hash_key     = "id"
-  
+  hash_key     = "userid"
+
   read_capacity  = 5
   write_capacity = 5
   attribute {
