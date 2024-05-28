@@ -42,12 +42,12 @@ func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	_id := uuid.New().String()
-	attrId, _ := attributevalue.Marshal(_id)
+	userid := uuid.New().String()
+	attrId, _ := attributevalue.Marshal(userid)
 	if input, err := attributevalue.MarshalMap(user); err != nil {
 		return nil, err
 	} else {
-		input["_id"] = attrId
+		input["userid"] = attrId
 		ddb := client.NewDynamodb(tableName)
 		params := dynamodb.PutItemInput{
 			TableName: aws.String(tableName),
@@ -60,7 +60,7 @@ func putUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 			response := events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Headers:    client.HttpResponseHeaders,
-				Body:       fmt.Sprintf("{\"_id\": \"%s\"}", _id),
+				Body:       fmt.Sprintf("{\"userid\": \"%s\"}", userid),
 			}
 
 			return &response, nil
@@ -78,15 +78,15 @@ func getUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*even
 		tableName = "FDSAppsUsers"
 	}
 
-	id := request.PathParameters["_id"]
-	requires := map[string]string{"_id": "string"}
-	if id == "" {
+	userid := request.PathParameters["id"]
+	requires := map[string]string{"userid": "string"}
+	if userid == "" {
 		return nil, fmt.Errorf("requires: %s", requires)
 	}
 
-	attr, _ := attributevalue.Marshal(id)
+	attr, _ := attributevalue.Marshal(userid)
 	key := map[string]types.AttributeValue{
-		"_id": attr,
+		"userid": attr,
 	}
 
 	ddb := client.NewDynamodb(tableName)
@@ -148,6 +148,47 @@ func getUsers(ctx context.Context, request *events.APIGatewayProxyRequest) (*eve
 	}
 }
 
+func deleteUser(ctx context.Context, request *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	logger, _ := zap.NewDevelopment()
+
+	logger.Info("lambda function: dynamodb delete item user")
+	logger.Debug(fmt.Sprint(request.PathParameters))
+
+	if tableName == "" {
+		tableName = "FDSAppsUsers"
+	}
+
+	userid := request.PathParameters["id"]
+	requires := map[string]string{"userid": "string"}
+	if userid == "" {
+		return nil, fmt.Errorf("requires: %s", requires)
+	}
+
+	attr, _ := attributevalue.Marshal(userid)
+	key := map[string]types.AttributeValue{
+		"userid": attr,
+	}
+
+	ddb := client.NewDynamodb(tableName)
+	params := dynamodb.DeleteItemInput{
+		TableName: aws.String(tableName),
+		Key:       key,
+	}
+
+	if _, err := ddb.DeleteItem(ctx, &params); err != nil {
+		return nil, err
+	} else {
+		response := events.APIGatewayProxyResponse{
+			StatusCode:      200,
+			Headers:         client.HttpResponseHeaders,
+			Body:            fmt.Sprintf(`{"userid: %s": "deletion complete"}`, userid),
+			IsBase64Encoded: true,
+		}
+
+		return &response, nil
+	}
+}
+
 // curl -s -X POST http://localhost:2026/2015-03-31/functions/function/invocations -d '{"parameters": {"hello": "world", "event": "key", "list": [0,1,2,3,4]} }' | jq
 func main() {
 	// AWS SDK lambda function handler
@@ -158,10 +199,12 @@ func main() {
 		switch key, _ := client.GetRequestKeyFrom(request.HTTPMethod, request.Resource); key {
 		case "GET /users":
 			return getUsers(ctx, request)
-		case "GET /users/{_id}":
+		case "GET /users/{id}":
 			return getUser(ctx, request)
 		case "PUT /users", "PUT /user":
 			return putUser(ctx, request)
+		case "DELETE /users/{id}":
+			return deleteUser(ctx, request)
 		default:
 			return nil, fmt.Errorf("(%s) not valid. valid request requires httpmethod and resource", key)
 		}

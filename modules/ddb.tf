@@ -4,12 +4,12 @@
 resource "aws_dynamodb_table" "users_table" {
   name         = "${var.app_prefix}Users"
   billing_mode = "PROVISIONED"
-  hash_key     = "_id"
+  hash_key     = "userid"
 
   read_capacity  = 5
   write_capacity = 5
   attribute {
-    name = "_id"
+    name = "userid"
     type = "S"
   }
 

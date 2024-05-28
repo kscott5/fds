@@ -56,8 +56,24 @@ resource "aws_api_gateway_rest_api" "rest_api" {
         }
       },
 
-      "/users/{_id}" = {
+      "/users/{id}" = {
         get = {
+          security = [
+            {
+              "lambdaTokenAuthorizer" : []
+            }
+          ]
+          x-amazon-apigateway-integration = {
+            httpMethod          = "POST"
+            type                = "aws_proxy"
+            passthroughBehavior = "WHEN_NO_MATCH"
+            uri                 = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.getuser.arn}/invocations"
+          }
+        }
+      },
+
+      "/users/{id}" = {
+        delete = {
           security = [
             {
               "lambdaTokenAuthorizer" : []
