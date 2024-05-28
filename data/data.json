@@ -3,7 +3,7 @@
                   {
                       "PutRequest": {
                           "Item": {
-                              "_id": {"S": "12dcc2135c9d47b1be3e926b77e96d60"},
+                              "userid": {"S": "12dcc2135c9d47b1be3e926b77e96d60"},
                               "UserName": {"S": "username0"},
                               "FullName": {"S": "Somewhat Famous"}
                           }
@@ -12,7 +12,7 @@
                   {
                       "PutRequest": {
                           "Item": {
-                              "_id": {"S": "b0c5ffcc2c8a4a768c1c98d511bc9ca5"},
+                              "userid": {"S": "b0c5ffcc2c8a4a768c1c98d511bc9ca5"},
                               "UserName": {"S": "username1"},
                               "FullName": {"S": "Songs About Life"}
                           }
@@ -21,7 +21,7 @@
                   {
                       "PutRequest": {
                           "Item": {
-                              "_id": {"S": "97ed8408f0e24422ba619884ab7d116d"},
+                              "userid": {"S": "97ed8408f0e24422ba619884ab7d116d"},
                               "UserName": {"S": "username2"},
                               "FullName": {"S": "Blue Sky Blues"}
                           }
@@ -30,7 +30,7 @@
                   {
                       "PutRequest": {
                           "Item": {
-                              "_id": {"S": "df155b71-ef78-4071-8839-b8fffb6d49d1"},
+                              "userid": {"S": "df155b71-ef78-4071-8839-b8fffb6d49d1"},
                               "UserName": {"S": "username3"},
                               "FullName": {"S": "Blue Sky Blues"}
                           }
